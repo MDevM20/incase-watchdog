@@ -4,8 +4,36 @@
 # 1. OpenSSL installed (standard on Windows 10/11 or via Git Bash).
 # 2. Google Cloud CLI (gcloud) installed and authenticated.
 
-$PROJECT_ID = "incase-watchdog" # Update this if your project ID is different
+# Load environment variables from .env if available
+function Load-Env {
+    param($path)
+    if (Test-Path $path) {
+        Write-Host "Loading configuration from: $path" -ForegroundColor Gray
+        Get-Content $path | Where-Object { $_ -match '=' -and $_ -notmatch '^#' } | ForEach-Object {
+            $name, $value = $_.Split('=', 2)
+            $name = $name.Trim()
+            $value = $value.Trim()
+            if ($name -and $value) {
+                Set-Variable -Name $name -Value $value -Scope Script
+            }
+        }
+    }
+}
+
+# Search for .env in root or functions folder
+if (Test-Path ".env") { Load-Env ".env" }
+elseif (Test-Path "functions/.env") { Load-Env "functions/.env" }
+
+# Project Configuration (Prioritize .env variables)
+$PROJECT_ID = $GCP_PROJECT
+if (-not $PROJECT_ID) {
+    Write-Host "Error: GCP_PROJECT not found in .env file." -ForegroundColor Red
+    $PROJECT_ID = Read-Host "Please enter your Google Cloud Project ID (and consider adding it to .env)"
+    if (-not $PROJECT_ID) { exit 1 }
+}
+
 $SECRET_NAME = "WATCHDOG_PRIVATE_KEY"
+$RESEND_SECRET_NAME = "RESEND_API_KEY"
 $PRIVATE_KEY_FILE = "private_key.pem"
 $PUBLIC_KEY_FILE = "public_key.pem"
 
@@ -60,6 +88,30 @@ if (-not $secretExists) {
 
 # Add the private key as a new version
 gcloud secrets versions add $SECRET_NAME --data-file=$PRIVATE_KEY_FILE --project $PROJECT_ID
+
+Write-Host "`n--- 3. Setting up Resend API Key ---" -ForegroundColor Cyan
+$resendKey = $RESEND_API_KEY
+if (-not $resendKey) {
+    $resendKey = Read-Host "Please enter your Resend API Key (leave blank to skip)"
+} else {
+    Write-Host "Using Resend API Key found in .env" -ForegroundColor Gray
+}
+
+if ($resendKey) {
+    $resendSecretExists = gcloud secrets list --filter="name ~ $RESEND_SECRET_NAME" --format="value(name)" --project $PROJECT_ID
+    if (-not $resendSecretExists) {
+        Write-Host "Creating secret $RESEND_SECRET_NAME in project $PROJECT_ID..."
+        gcloud secrets create $RESEND_SECRET_NAME --replication-policy="automatic" --project $PROJECT_ID
+    }
+    
+    # Write key to temp file to avoid shelf character issues in CLI
+    $resendKey | Out-File -FilePath "resend_key.tmp" -NoNewline
+    gcloud secrets versions add $RESEND_SECRET_NAME --data-file="resend_key.tmp" --project $PROJECT_ID
+    Remove-Item "resend_key.tmp"
+    Write-Host "Resend API Key saved successfully." -ForegroundColor Green
+} else {
+    Write-Host "Skipping Resend API Key setup." -ForegroundColor Yellow
+}
 
 Write-Host "`n--- Done! ---" -ForegroundColor Green
 Write-Host "Next steps:"

@@ -39,25 +39,29 @@ A secure, anonymous "Dead Man's Switch" built with Firebase Cloud Functions. It 
 
 ### 🛠️ Troubleshooting OpenSSL (Windows)
 If `openssl` is not recognized after installation:
-1.  **Manual Path**: OpenSSL is likely installed at `C:\Program Files\OpenSSL-Win64\bin\openssl.exe`.
-2.  **Add to PATH**:
-    -   Search for "Environment Variables" in Windows Search.
-    -   Edit **System Environment Variables**.
-    -   Under **System variables**, select **Path** and click **Edit**.
+1.  **Run the Setup Script**: The `setup_infrastructure.ps1` script now includes advanced detection that can find OpenSSL even if it's not in your PATH (e.g., in `C:\Program Files\OpenSSL-Win64\bin`).
+2.  **Manual Path**: If you need to run it manually, it is likely at `C:\Program Files\OpenSSL-Win64\bin\openssl.exe`.
+3.  **Add to PATH (Optional)**:
+    -   Search for "System Environment Variables" in Windows Search.
+    -   Click **Environment Variables** -> Select **Path** under **System variables** -> Click **Edit**.
     -   Click **New** and add: `C:\Program Files\OpenSSL-Win64\bin`.
     -   **Restart your terminal**.
 
 ### 2. Infrastructure Setup
-Run the setup script to generate RSA keys and upload the private key to Google Secret Manager:
+Run the setup script to generate RSA keys, set your **Project ID**, and upload the private key and **Resend API Key** to Google Secret Manager:
 ```powershell
 ./setup_infrastructure.ps1
 ```
 
-### 3. Configuration
-Set your Resend API Key in Firebase:
+> [!NOTE]
+> The script will prompt you for your Resend API Key. This key is stored securely in Secret Manager and accessed by the Cloud Functions at runtime.
+
+### 3. Environment Variables (Local Development)
+For local testing or if you prefer not to use Secret Manager for all variables, copy the example environment file:
 ```bash
-firebase functions:config:set resend.key="re_your_api_key"
+cp functions/.env.example functions/.env
 ```
+Update `functions/.env` with your project-specific values.
 
 ### 4. Deployment
 ```bash
