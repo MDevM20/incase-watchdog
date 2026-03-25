@@ -1,101 +1,136 @@
-# InCase Watchdog - Anonymous Dead Man's Switch
+# InCase Watchdog — Anonymous Dead Man's Switch
 
-A secure, anonymous "Dead Man's Switch" built with Firebase Cloud Functions. It manages a 30-day timer, sends warnings via FCM push notifications, and automatically releases a key fragment to a recipient upon expiration.
+A secure, anonymous "Dead Man's Switch" built with Firebase Cloud Functions. It manages a 30-day timer, sends escalating warnings via FCM push notifications, and automatically releases an encrypted key fragment to a recipient upon expiration.
 
 ## 🚀 Features
 
-- **Anonymous**: Uses client-generated BlindIDs (Hashed Email + DeviceSalt).
-- **Secure**: Uses RSA decryption for sensitive payloads, with private keys stored securely in **Google Secret Manager**.
-- **Automated**: A daily sweep function (CRON) handles escalation and trigger logic.
-- **Multi-channel Notifications**: FCM for push warnings (Day 20/25) and Resend for final key release (Day 30).
+- **Anonymous**: Uses client-generated BlindIDs (Hashed Email + DeviceSalt) — no personal data stored.
+- **Secure**: RSA-encrypted payloads with private keys stored in **Google Secret Manager**.
+- **Automated**: A daily CRON sweep handles escalation (Day 20 / Day 25) and final trigger (Day 30).
+- **Multi-channel**: FCM push warnings + Resend email for key release.
 
 ## 🛠️ Technology Stack
 
-- **Database**: Firebase Firestore.
-- **Execution**: Firebase Cloud Functions (Node.js/TypeScript).
-- **Security**: Google Secret Manager.
-- **Communication**: FCM (Push) & Resend (Email).
-- **Trigger**: Cloud Scheduler (CRON job).
+| Layer | Technology |
+|---|---|
+| Database | Firebase Firestore |
+| Functions | Firebase Cloud Functions (Node.js 22 / TypeScript) |
+| Secrets | Google Secret Manager |
+| Notifications | Firebase FCM (push) + Resend (email) |
+| Scheduler | Cloud Scheduler (CRON) |
 
 ## 📂 Project Structure
 
-- `functions/`: The core backend logic.
-  - `src/index.ts`: The `sweepWatchdog` and `pingWatchdog` functions.
-  - `src/crypto.ts`: RSA Decryption and Secret Manager integration.
-  - `src/notifications.ts`: FCM and Resend utilities.
-  - `src/types.ts`: Firestore schema.
-- `setup_infrastructure.ps1`: Helper script for RSA keys and Secret Manager setup.
+```
+incase-watchdog/
+├── functions/
+│   ├── src/
+│   │   ├── index.ts          # sweepWatchdog (CRON) & pingWatchdog (HTTPS)
+│   │   ├── crypto.ts         # RSA decryption + Secret Manager
+│   │   ├── notifications.ts  # FCM push + Resend email
+│   │   └── types.ts          # Firestore schema types
+│   ├── .env.example          # Environment variable template
+│   └── package.json
+├── setup_infrastructure.ps1  # RSA key generation + Secret Manager setup
+├── firebase.json
+└── .env                      # Your local config (never commit this)
+```
 
 ## 🚦 Getting Started
 
 ### 1. Prerequisites
-- Firebase CLI (`npm install -g firebase-tools`).
-- Google Cloud CLI (`gcloud`).
-- OpenSSL (for key generation).
-    - **Windows**: `winget install openssl` (or install [Git for Windows](https://git-scm.com/download/win)).
-    - **macOS**: `brew install openssl`
-    - **Linux (Ubuntu/Debian)**: `sudo apt install openssl`
-- A [Resend](https://resend.com/) account for email notifications.
 
-### 🛠️ Troubleshooting OpenSSL (Windows)
-If `openssl` is not recognized after installation:
-1.  **Run the Setup Script**: The `setup_infrastructure.ps1` script now includes advanced detection that can find OpenSSL even if it's not in your PATH (e.g., in `C:\Program Files\OpenSSL-Win64\bin`).
-2.  **Manual Path**: If you need to run it manually, it is likely at `C:\Program Files\OpenSSL-Win64\bin\openssl.exe`.
-3.  **Add to PATH (Optional)**:
-    -   Search for "System Environment Variables" in Windows Search.
-    -   Click **Environment Variables** -> Select **Path** under **System variables** -> Click **Edit**.
-    -   Click **New** and add: `C:\Program Files\OpenSSL-Win64\bin`.
-    -   **Restart your terminal**.
+Install the following tools:
 
-### 2. Firebase Console Setup
-Before deploying, you must manually enable the following services in the [Firebase Console](https://console.firebase.google.com/):
+- **Firebase CLI**: `npm install -g firebase-tools`
+- **Google Cloud CLI**: [install guide](https://cloud.google.com/sdk/docs/install)
+- **OpenSSL**:
+  - Windows: `winget install openssl` or install via [Git for Windows](https://git-scm.com/download/win)
+  - macOS: `brew install openssl`
+  - Linux: `sudo apt install openssl`
+- A **[Resend](https://resend.com/)** account for email notifications.
 
-#### A. Enable Anonymous Authentication
-1. Go to **Build** > **Authentication** > **Get Started**.
-2. Go to the **Sign-in method** tab.
-3. Select **Anonymous**, enable it, and click **Save**.
+Also authenticate both CLIs:
+```bash
+firebase login
+gcloud auth login
+```
 
-#### B. Initialize Firestore
+### 2. Configure Your `.env` File
+
+Create a `.env` file in the **project root** with:
+```env
+GCP_PROJECT=your-firebase-project-id
+RESEND_API_KEY=re_your_api_key_here
+```
+
+> [!IMPORTANT]
+> The `.env` file is used by `setup_infrastructure.ps1` at setup time. A separate `functions/.env` is used for local Cloud Functions development/emulation. Copy the template: `cp functions/.env.example functions/.env`
+
+### 3. Enable Firebase Services
+
+In the [Firebase Console](https://console.firebase.google.com/), manually enable:
+
+#### A. Anonymous Authentication
+1. Go to **Build** > **Authentication** > **Sign-in method**.
+2. Enable **Anonymous** and click **Save**.
+
+#### B. Firestore Database
 1. Go to **Build** > **Firestore Database** > **Create database**.
-2. Choose your location and start in **Production mode** (Security Rules are already provided in the project).
+2. Select your region and start in **Production mode**.
 3. Click **Enable**.
 
-### 3. Infrastructure Setup
-Run the setup script to generate RSA keys, set your **Project ID**, and upload the private key and **Resend API Key** to Google Secret Manager:
+### 4. Run Infrastructure Setup
+
+From the project root, run the PowerShell setup script:
 ```powershell
 ./setup_infrastructure.ps1
 ```
 
+This script will:
+- ✅ Detect OpenSSL (even if not in your PATH)
+- ✅ Check Firestore is initialized
+- ✅ Generate a 2048-bit RSA key pair
+- ✅ Upload the private key to Google Secret Manager
+- ✅ Upload your `RESEND_API_KEY` to Google Secret Manager
+
 > [!NOTE]
-> The script will prompt you for your Resend API Key. This key is stored securely in Secret Manager and accessed by the Cloud Functions at runtime.
+> The `public_key.pem` in the project root is used by the client app to encrypt payloads before storing them in Firestore.
 
-### 4. Environment Variables (Local Development)
-For local testing or if you prefer not to use Secret Manager for all variables, copy the example environment file:
-```bash
-cp functions/.env.example functions/.env
-```
-Update `functions/.env` with your project-specific values.
+### 5. Deploy Cloud Functions
 
-### 5. Deployment
+From the **project root**, run:
 ```bash
-cd functions
-npm install
-npm run deploy
+firebase deploy --only functions
 ```
+
+To target a specific project explicitly:
+```bash
+firebase deploy --only functions --project your-firebase-project-id
+```
+
+> [!TIP]
+> On first deploy, Firebase will ask how many days to keep container images in Artifact Registry. Enter `1` to minimize storage costs.
+
+---
 
 ## 🔍 Usage
 
-### 1. Register a Watchdog
-Insert a new document into the `watchdog_timers` collection in Firestore:
-- **ID**: `BlindID`
-- **Fields**:
-  - `last_ping`: (Timestamp)
-  - `status`: `"active"`
-  - `fcm_token`: (String)
-  - `encrypted_payload`: (String) Base64 encoded payload encrypted with the Public RSA Key.
+### Register a Watchdog
 
-### 2. Payload Structure (JSON)
-Before encryption, the payload should look like this:
+Insert a document into the `watchdog_timers` Firestore collection:
+
+| Field | Type | Description |
+|---|---|---|
+| `last_ping` | Timestamp | Time of last check-in |
+| `status` | String | `"active"` |
+| `fcm_token` | String | Client device FCM token |
+| `encrypted_payload` | String | Base64-encoded RSA-encrypted payload |
+
+**Document ID** = `BlindID` (client-generated: `hash(email + deviceSalt)`)
+
+### Payload Structure (before encryption)
+
 ```json
 {
   "recipient_email": "recipient@example.com",
@@ -104,11 +139,81 @@ Before encryption, the payload should look like this:
 }
 ```
 
-### 3. Checking In (Ping)
-Call the `pingWatchdog` function via your client app to reset the 30-day timer:
+### Check In (Ping)
+
+Call the `pingWatchdog` callable function from your client app to reset the 30-day timer:
+
 ```typescript
-firebase.functions().httpsCallable('pingWatchdog')({ blindId: '...' });
+const ping = firebase.functions().httpsCallable('pingWatchdog');
+await ping({ blindId: 'your-blind-id' });
 ```
 
+Requires **Anonymous Authentication** to be signed in.
+
+---
+
+## 🧪 Testing
+
+### Manually Triggering `sweepWatchdog`
+
+The sweep function runs on a daily CRON schedule. To trigger it manually for testing:
+
+#### Option 1 — Firebase Console (easiest for deployed functions)
+1. Go to the [Cloud Scheduler page](https://console.cloud.google.com/cloudscheduler) in GCP.
+2. Find the job named `firebase-schedule-sweepWatchdog-us-central1`.
+3. Click **Force run**.
+
+#### Option 2 — gcloud CLI
+```bash
+gcloud scheduler jobs run firebase-schedule-sweepWatchdog-us-central1 \
+  --location us-central1 \
+  --project your-firebase-project-id
+```
+
+#### Option 3 — Firebase Emulator (local testing, no deployment needed)
+```bash
+cd functions
+npm run build
+firebase emulators:start --only functions
+```
+Then trigger it via the Emulator UI at `http://localhost:4000` or call it from the Functions shell:
+```bash
+firebase functions:shell
+# Inside the shell:
+sweepWatchdog.run()
+```
+
+### Testing `pingWatchdog`
+
+You can call the HTTPS callable function directly from any Firebase SDK client, or test it via the Firebase Emulator Functions shell:
+```bash
+pingWatchdog({blindId: 'test-blind-id'})
+```
+
+> [!TIP]
+> For end-to-end testing, insert a Firestore document with `last_ping` set to a timestamp 30+ days in the past and `status: "active"`, then force-run the sweep.
+
+---
+
+## 🛠️ Troubleshooting
+
+### OpenSSL not recognized (Windows)
+
+The setup script auto-detects OpenSSL in common locations (including Git for Windows). If you need to add it to PATH manually:
+
+1. Search for **"Environment Variables"** in Windows Search.
+2. Edit **System variables** > **Path**.
+3. Add: `C:\Program Files\OpenSSL-Win64\bin`
+4. Restart your terminal.
+
+### Deployment fails
+
+- Ensure you are **logged in**: `firebase login` and `gcloud auth login`
+- Ensure the Cloud Functions API is enabled: `gcloud services enable cloudfunctions.googleapis.com --project YOUR_PROJECT_ID`
+- Verify your project is on the **Blaze (pay-as-you-go)** plan — Cloud Functions requires it.
+
+---
+
 ## ⚖️ License
+
 MIT
