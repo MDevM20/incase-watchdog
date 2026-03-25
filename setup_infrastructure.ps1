@@ -32,6 +32,22 @@ if (-not $PROJECT_ID) {
     if (-not $PROJECT_ID) { exit 1 }
 }
 
+Write-Host "--- 0. Checking Firebase Services ---" -ForegroundColor Cyan
+
+# Check Firestore
+Write-Host "Checking Firestore Database..." -ForegroundColor Gray
+$firestoreExists = gcloud firestore databases list --project $PROJECT_ID --format="value(name)"
+if (-not $firestoreExists) {
+    Write-Host "Warning: Firestore Database not found in project $PROJECT_ID." -ForegroundColor Yellow
+    Write-Host "Please initialize it in the Firebase Console: https://console.firebase.google.com/project/$PROJECT_ID/firestore"
+} else {
+    Write-Host "Firestore is initialized." -ForegroundColor Green
+}
+
+# Reminder for Anonymous Auth
+Write-Host "`nReminder: Ensure Anonymous Authentication is enabled." -ForegroundColor Yellow
+Write-Host "Check settings here: https://console.firebase.google.com/project/$PROJECT_ID/authentication/providers"
+
 $SECRET_NAME = "WATCHDOG_PRIVATE_KEY"
 $RESEND_SECRET_NAME = "RESEND_API_KEY"
 $PRIVATE_KEY_FILE = "private_key.pem"

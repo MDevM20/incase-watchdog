@@ -47,7 +47,20 @@ If `openssl` is not recognized after installation:
     -   Click **New** and add: `C:\Program Files\OpenSSL-Win64\bin`.
     -   **Restart your terminal**.
 
-### 2. Infrastructure Setup
+### 2. Firebase Console Setup
+Before deploying, you must manually enable the following services in the [Firebase Console](https://console.firebase.google.com/):
+
+#### A. Enable Anonymous Authentication
+1. Go to **Build** > **Authentication** > **Get Started**.
+2. Go to the **Sign-in method** tab.
+3. Select **Anonymous**, enable it, and click **Save**.
+
+#### B. Initialize Firestore
+1. Go to **Build** > **Firestore Database** > **Create database**.
+2. Choose your location and start in **Production mode** (Security Rules are already provided in the project).
+3. Click **Enable**.
+
+### 3. Infrastructure Setup
 Run the setup script to generate RSA keys, set your **Project ID**, and upload the private key and **Resend API Key** to Google Secret Manager:
 ```powershell
 ./setup_infrastructure.ps1
@@ -56,14 +69,14 @@ Run the setup script to generate RSA keys, set your **Project ID**, and upload t
 > [!NOTE]
 > The script will prompt you for your Resend API Key. This key is stored securely in Secret Manager and accessed by the Cloud Functions at runtime.
 
-### 3. Environment Variables (Local Development)
+### 4. Environment Variables (Local Development)
 For local testing or if you prefer not to use Secret Manager for all variables, copy the example environment file:
 ```bash
 cp functions/.env.example functions/.env
 ```
 Update `functions/.env` with your project-specific values.
 
-### 4. Deployment
+### 5. Deployment
 ```bash
 cd functions
 npm install
