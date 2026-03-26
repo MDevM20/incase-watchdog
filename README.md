@@ -196,18 +196,22 @@ gcloud scheduler jobs run firebase-schedule-sweepWatchdog-us-central1 \
   --project your-firebase-project-id
 ```
 
-#### Option 3 — Firebase Emulator (local testing, no deployment needed)
+#### Option 3 — Manual Trigger via `forceSweepWatchdog` (Recommended)
+You can call the new `forceSweepWatchdog` HTTPS function directly via the Firebase CLI shell. This is the fastest way to test the sweep logic and see immediate results in the logs.
+
+```bash
+firebase functions:shell
+# Inside the shell:
+forceSweepWatchdog({})
+```
+
+#### Option 4 — Firebase Emulator (local testing)
 ```bash
 cd functions
 npm run build
 firebase emulators:start --only functions
 ```
-Then trigger it via the Emulator UI at `http://localhost:4000` or call it from the Functions shell:
-```bash
-firebase functions:shell
-# Inside the shell:
-sweepWatchdog.run()
-```
+Then trigger it via the Emulator UI at `http://localhost:4000`.
 
 ### Testing `pingWatchdog`
 

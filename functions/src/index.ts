@@ -41,68 +41,105 @@ export const createWatchdog = functions.https.onCall(async (data, context) => {
  * Daily Sweep Function (CRON-triggered every 24 hours).
  * Checks the last_ping of all active watchdog timers and escalates or triggers.
  */
-export const sweepWatchdog = functions.pubsub
-  .schedule("every 24 hours")
+export const sweepWatchdog = functions
+  .runWith({ secrets: ["RESEND_API_KEY", "WATCHDOG_PRIVATE_KEY"] })
+  .pubsub.schedule("every 24 hours")
   .onRun(async (context) => {
-    const db = admin.firestore();
-    const now = admin.firestore.Timestamp.now();
-    const twentyDays = 20 * 24 * 60 * 60 * 1000;
-    const twentyFiveDays = 25 * 24 * 60 * 60 * 1000;
-    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+    return runSweep();
+  });
 
-    const querySnapshot = await db
-      .collection("watchdog_timers")
-      .where("status", "!=", "triggered")
-      .get();
+/**
+ * Manual Sweep Trigger (HTTPS Caller).
+ * Allows manual execution of the sweep logic for testing or urgent needs.
+ */
+export const forceSweepWatchdog = functions
+  .runWith({ secrets: ["RESEND_API_KEY", "WATCHDOG_PRIVATE_KEY"] })
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError("unauthenticated", "Authentication required");
+    }
+    console.log("Manual sweep triggered by:", context.auth.uid);
+    await runSweep();
+    return { success: true, message: "Sweep completed. Check logs for details." };
+  });
 
-    const batch = db.batch();
+/**
+ * Core Sweep Logic.
+ */
+async function runSweep() {
+  const db = admin.firestore();
+  const now = admin.firestore.Timestamp.now();
+  const twentyDays = 20 * 24 * 60 * 60 * 1000;
+  const twentyFiveDays = 25 * 24 * 60 * 60 * 1000;
+  const thirtyDays = 30 * 24 * 60 * 60 * 1000;
 
-    for (const doc of querySnapshot.docs) {
-      const data = doc.data() as WatchdogTimer;
-      const age = now.toMillis() - data.last_ping.toMillis();
+  console.log(`Starting watchdog sweep at ${now.toDate().toISOString()}`);
 
+  const querySnapshot = await db
+    .collection("watchdog_timers")
+    .where("status", "!=", "triggered")
+    .get();
+
+  console.log(`Found ${querySnapshot.size} active/warning watchdogs to check.`);
+
+  for (const doc of querySnapshot.docs) {
+    const data = doc.data() as WatchdogTimer;
+    
+    if (!data.last_ping || typeof data.last_ping.toMillis !== "function") {
+      console.error(`Watchdog ${doc.id} has invalid last_ping field.`);
+      continue;
+    }
+
+    const age = now.toMillis() - data.last_ping.toMillis();
+    console.log(`Processing watchdog ${doc.id}: status=${data.status}, age=${(age / (24 * 60 * 60 * 1000)).toFixed(2)} days`);
+
+    try {
       // Day 30+: Trigger/Release
       if (age >= thirtyDays) {
-        try {
-          const payload: DecryptedPayload = await decryptPayload(data.encrypted_payload);
-          
-          await sendEmail(
-            payload.recipient_email,
-            "Secure Vault Release: Watchdog Triggered",
-            `A security watchdog has expired. You are receiving File ID: ${payload.file_id} and Key Part A: ${payload.key_part_a}.`
-          );
-
-          batch.update(doc.ref, { status: "triggered" });
-          console.log(`Watchdog ${doc.id} triggered.`);
-        } catch (error) {
-          console.error(`Failed to trigger watchdog ${doc.id}:`, error);
+        console.log(`Watchdog ${doc.id} reached 30 days. Triggering release...`);
+        const payload: DecryptedPayload = await decryptPayload(data.encrypted_payload);
+        
+        if (!payload.recipient_email) {
+          throw new Error("Decrypted payload missing recipient_email");
         }
+
+        await sendEmail(
+          payload.recipient_email,
+          "Secure Vault Release: Watchdog Triggered",
+          `A security watchdog has expired. You are receiving File ID: ${payload.file_id} and Key Part A: ${payload.key_part_a}.`
+        );
+
+        await doc.ref.update({ status: "triggered", triggered_at: now });
+        console.log(`Watchdog ${doc.id} successfully triggered and status updated.`);
       } 
       // Day 25: Warning 2
       else if (age >= twentyFiveDays && data.status === "warning_1") {
+        console.log(`Watchdog ${doc.id} reached 25 days. Sending final warning...`);
         await sendPushNotification(
           data.fcm_token,
           "Final Warning",
           "Final Warning: Your secure vault will be shared in 5 days."
         );
-        batch.update(doc.ref, { status: "warning_2" });
-        console.log(`Watchdog ${doc.id} set to warning_2.`);
+        await doc.ref.update({ status: "warning_2" });
       } 
       // Day 20: Warning 1
       else if (age >= twentyDays && data.status === "active") {
+        console.log(`Watchdog ${doc.id} reached 20 days. Sending check-in reminder...`);
         await sendPushNotification(
           data.fcm_token,
           "Check-in required!",
           "Your watchdog triggers in 10 days."
         );
-        batch.update(doc.ref, { status: "warning_1" });
-        console.log(`Watchdog ${doc.id} set to warning_1.`);
+        await doc.ref.update({ status: "warning_1" });
       }
+    } catch (error) {
+      console.error(`Error processing watchdog ${doc.id}:`, error);
     }
+  }
 
-    await batch.commit();
-    return null;
-  });
+  console.log("Watchdog sweep finished.");
+  return null;
+}
 
 /**
  * Ping Function (HTTPS Caller).

@@ -1,9 +1,7 @@
 import * as admin from "firebase-admin";
 import { Resend } from "resend";
 
-// Initialize Resend with API Key (should be in Secret Manager or Process Env)
-const RESEND_API_KEY = process.env.RESEND_API_KEY || "re_your_api_key";
-const resend = new Resend(RESEND_API_KEY);
+// Resend is initialized inside the sendEmail function to ensure environment variables are correctly loaded.
 
 /**
  * Sends a push notification via FCM.
@@ -29,22 +27,35 @@ export async function sendPushNotification(token: string, title: string, body: s
  * Sends an email via Resend.
  */
 export async function sendEmail(to: string, subject: string, text: string, html?: string) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || apiKey === "re_your_api_key") {
+    console.error("RESEND_API_KEY is not set or is using the placeholder value.");
+    return;
+  }
+
+  if (!to) {
+    console.error("sendEmail called without a recipient address.");
+    return;
+  }
+
+  const resend = new Resend(apiKey);
+  
   try {
+    console.log(`Attempting to send email to: ${to} (Subject: ${subject})`);
     const response = await resend.emails.send({
-      from: "Watchdog <onboarding@resend.dev>", // Change to your verified sender
+      from: "Watchdog <onboarding@resend.dev>", // TODO: Change to your verified sender
       to: [to],
       subject,
       text,
       html: html || text,
     });
     
-    // In some Resend SDK versions, the response is returned differently
     if ((response as any).error) {
-      console.error("Error sending email via Resend:", (response as any).error);
+      console.error("Error response from Resend:", JSON.stringify((response as any).error));
     } else {
-      console.log("Successfully sent email via Resend:", (response as any).id || (response as any).data?.id);
+      console.log("Successfully sent email via Resend. ID:", (response as any).id || (response as any).data?.id);
     }
   } catch (err) {
-    console.error("Unexpected error sending email via Resend:", err);
+    console.error("Unexpected exception in sendEmail:", err);
   }
 }
