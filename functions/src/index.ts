@@ -1,10 +1,41 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import * as crypto from "crypto";
 import { WatchdogTimer, DecryptedPayload } from "./types";
 import { decryptPayload } from "./crypto";
 import { sendPushNotification, sendEmail } from "./notifications";
 
 admin.initializeApp();
+
+/**
+ * Create Function (HTTPS Caller).
+ * Initializes a new watchdog and returns a secret_token.
+ */
+export const createWatchdog = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError("unauthenticated", "Authentication required");
+  }
+
+  const { blindId, fcm_token, encrypted_payload } = data;
+  if (!blindId || !fcm_token || !encrypted_payload) {
+    throw new functions.https.HttpsError("invalid-argument", "Missing required fields");
+  }
+
+  // Generate a random secret token
+  const secretToken = crypto.randomBytes(32).toString("hex");
+  const hashedToken = crypto.createHash("sha256").update(secretToken).digest("hex");
+
+  const db = admin.firestore();
+  await db.collection("watchdog_timers").doc(blindId).set({
+    last_ping: admin.firestore.Timestamp.now(),
+    status: "active",
+    fcm_token,
+    encrypted_payload,
+    hashed_token: hashedToken,
+  });
+
+  return { secret_token: secretToken };
+});
 
 /**
  * Daily Sweep Function (CRON-triggered every 24 hours).
@@ -54,9 +85,6 @@ export const sweepWatchdog = functions.pubsub
           "Final Warning",
           "Final Warning: Your secure vault will be shared in 5 days."
         );
-        // Also send email to the user (if we have their email in the payload or separately)
-        // For now, let's assume FCM is the primary warning channel as per requirements.
-        
         batch.update(doc.ref, { status: "warning_2" });
         console.log(`Watchdog ${doc.id} set to warning_2.`);
       } 
@@ -78,20 +106,32 @@ export const sweepWatchdog = functions.pubsub
 
 /**
  * Ping Function (HTTPS Caller).
- * Resets the watchdog timer.
+ * Resets the watchdog timer. Requires the secret_token.
  */
 export const pingWatchdog = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError("unauthenticated", "Authentication required");
   }
 
-  const { blindId } = data;
-  if (!blindId) {
-    throw new functions.https.HttpsError("invalid-argument", "Missing blindId");
+  const { blindId, secret_token } = data;
+  if (!blindId || !secret_token) {
+    throw new functions.https.HttpsError("invalid-argument", "Missing blindId or secret_token");
   }
 
   const db = admin.firestore();
   const watchdogRef = db.collection("watchdog_timers").doc(blindId);
+  const doc = await watchdogRef.get();
+
+  if (!doc.exists) {
+    throw new functions.https.HttpsError("not-found", "Watchdog not found");
+  }
+
+  const watchdog = doc.data() as WatchdogTimer;
+  const providedHash = crypto.createHash("sha256").update(secret_token).digest("hex");
+
+  if (watchdog.hashed_token !== providedHash) {
+    throw new functions.https.HttpsError("permission-denied", "Invalid secret_token");
+  }
 
   await watchdogRef.update({
     last_ping: admin.firestore.Timestamp.now(),
@@ -103,20 +143,32 @@ export const pingWatchdog = functions.https.onCall(async (data, context) => {
 
 /**
  * Delete Function (HTTPS Caller).
- * Completely removes a watchdog timer.
+ * Completely removes a watchdog timer. Requires the secret_token.
  */
 export const deleteWatchdog = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError("unauthenticated", "Authentication required");
   }
 
-  const { blindId } = data;
-  if (!blindId) {
-    throw new functions.https.HttpsError("invalid-argument", "Missing blindId");
+  const { blindId, secret_token } = data;
+  if (!blindId || !secret_token) {
+    throw new functions.https.HttpsError("invalid-argument", "Missing blindId or secret_token");
   }
 
   const db = admin.firestore();
   const watchdogRef = db.collection("watchdog_timers").doc(blindId);
+  const doc = await watchdogRef.get();
+
+  if (!doc.exists) {
+    return { success: true };
+  }
+
+  const watchdog = doc.data() as WatchdogTimer;
+  const providedHash = crypto.createHash("sha256").update(secret_token).digest("hex");
+
+  if (watchdog.hashed_token !== providedHash) {
+    throw new functions.https.HttpsError("permission-denied", "Invalid secret_token");
+  }
 
   await watchdogRef.delete();
 

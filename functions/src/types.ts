@@ -7,6 +7,7 @@ export interface WatchdogTimer {
   status: WatchdogStatus;
   fcm_token: string;
   encrypted_payload: string; // Encrypted with Server's Public RSA Key
+  hashed_token: string;     // Hashed secret token for ownership verification
 }
 
 export interface DecryptedPayload {

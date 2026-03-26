@@ -116,20 +116,31 @@ firebase deploy --only functions --project your-firebase-project-id
 
 ## 🔍 Usage
 
-### Register a Watchdog
+### 1. Register a Watchdog
 
-Insert a document into the `watchdog_timers` Firestore collection:
+Instead of writing directly to Firestore, call the `createWatchdog` HTTPS callable function. This function generates a `secret_token` for the client and stores a hash of it on the server for security.
 
+```typescript
+const create = firebase.functions().httpsCallable('createWatchdog');
+const { data } = await create({
+  blindId: 'your-blind-id',
+  fcm_token: 'your-fcm-token',
+  encrypted_payload: 'base64-rsa-encrypted-payload'
+});
+
+const secretToken = data.secret_token; // SAVE THIS SECURELY (e.g., Keychain)
+```
+
+**Fields stored in Firestore:**
 | Field | Type | Description |
 |---|---|---|
 | `last_ping` | Timestamp | Time of last check-in |
 | `status` | String | `"active"` |
 | `fcm_token` | String | Client device FCM token |
 | `encrypted_payload` | String | Base64-encoded RSA-encrypted payload |
+| `hashed_token` | String | SHA-256 hash of the client's secret token |
 
-**Document ID** = `BlindID` (client-generated: `hash(email + deviceSalt)`)
-
-### Payload Structure (before encryption)
+### 2. Payload Structure (JSON)
 
 ```json
 {
@@ -141,20 +152,26 @@ Insert a document into the `watchdog_timers` Firestore collection:
 
 ### 3. Checking In (Ping)
 
-Call the `pingWatchdog` function via your client app to reset the 30-day timer:
+Call the `pingWatchdog` function via your client app to reset the 30-day timer. You must provide the `secret_token` returned during registration.
 
 ```typescript
 const ping = firebase.functions().httpsCallable('pingWatchdog');
-await ping({ blindId: '...' });
+await ping({ 
+  blindId: 'your-blind-id', 
+  secret_token: 'your-saved-token' 
+});
 ```
 
 ### 4. Deleting a Watchdog
 
-Call the `deleteWatchdog` function to completely remove a timer:
+Call the `deleteWatchdog` function to completely remove a timer. Requires the `secret_token`.
 
 ```typescript
 const remove = firebase.functions().httpsCallable('deleteWatchdog');
-await remove({ blindId: '...' });
+await remove({ 
+  blindId: 'your-blind-id', 
+  secret_token: 'your-saved-token' 
+});
 ```
 
 Requires **Anonymous Authentication** to be signed in.
