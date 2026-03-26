@@ -139,13 +139,22 @@ Insert a document into the `watchdog_timers` Firestore collection:
 }
 ```
 
-### Check In (Ping)
+### 3. Checking In (Ping)
 
-Call the `pingWatchdog` callable function from your client app to reset the 30-day timer:
+Call the `pingWatchdog` function via your client app to reset the 30-day timer:
 
 ```typescript
 const ping = firebase.functions().httpsCallable('pingWatchdog');
-await ping({ blindId: 'your-blind-id' });
+await ping({ blindId: '...' });
+```
+
+### 4. Deleting a Watchdog
+
+Call the `deleteWatchdog` function to completely remove a timer:
+
+```typescript
+const remove = firebase.functions().httpsCallable('deleteWatchdog');
+await remove({ blindId: '...' });
 ```
 
 Requires **Anonymous Authentication** to be signed in.

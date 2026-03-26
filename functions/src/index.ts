@@ -100,3 +100,25 @@ export const pingWatchdog = functions.https.onCall(async (data, context) => {
 
   return { success: true };
 });
+
+/**
+ * Delete Function (HTTPS Caller).
+ * Completely removes a watchdog timer.
+ */
+export const deleteWatchdog = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError("unauthenticated", "Authentication required");
+  }
+
+  const { blindId } = data;
+  if (!blindId) {
+    throw new functions.https.HttpsError("invalid-argument", "Missing blindId");
+  }
+
+  const db = admin.firestore();
+  const watchdogRef = db.collection("watchdog_timers").doc(blindId);
+
+  await watchdogRef.delete();
+
+  return { success: true };
+});
