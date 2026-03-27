@@ -11,7 +11,9 @@ admin.initializeApp();
  * Create Function (HTTPS Caller).
  * Initializes a new watchdog and returns a secret_token.
  */
-export const createWatchdog = functions.https.onCall(async (data, context) => {
+export const createWatchdog = functions
+  .runWith({ secrets: ["RESEND_API_KEY", "WATCHDOG_PRIVATE_KEY"] })
+  .https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError("unauthenticated", "Authentication required");
   }

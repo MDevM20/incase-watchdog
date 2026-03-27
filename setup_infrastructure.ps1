@@ -81,10 +81,29 @@ if (-not (Get-Command $checkCmd -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-Write-Host "--- 1. Generating RSA Key Pair ---" -ForegroundColor Cyan
-$cmdToRun = if ($opensslCmd.StartsWith('"')) { $opensslCmd.Trim('"') } else { $opensslCmd }
-& $cmdToRun genrsa -out $PRIVATE_KEY_FILE 2048
-& $cmdToRun rsa -in $PRIVATE_KEY_FILE -pubout -out $PUBLIC_KEY_FILE
+$generateKeys = $true
+if (Test-Path $PRIVATE_KEY_FILE) {
+    Write-Host "`nRSA Private Key ($PRIVATE_KEY_FILE) already exists." -ForegroundColor Yellow
+    $choice = Read-Host "Do you want to regenerate the key pair? This will invalidate any existing encrypted data! (y/N)"
+    if ($choice -ne "y") {
+        $generateKeys = $false
+        Write-Host "Skipping RSA key generation. Using existing keys." -ForegroundColor Gray
+    }
+}
+
+if ($generateKeys) {
+    Write-Host "--- 1. Generating RSA Key Pair ---" -ForegroundColor Cyan
+    $cmdToRun = if ($opensslCmd.StartsWith('"')) { $opensslCmd.Trim('"') } else { $opensslCmd }
+    & $cmdToRun genrsa -out $PRIVATE_KEY_FILE 2048
+    & $cmdToRun rsa -in $PRIVATE_KEY_FILE -pubout -out $PUBLIC_KEY_FILE
+} else {
+    # Ensure public key also exists if we skipped generation
+    if (-not (Test-Path $PUBLIC_KEY_FILE)) {
+        Write-Host "Generating missing Public Key from existing Private Key..." -ForegroundColor Gray
+        $cmdToRun = if ($opensslCmd.StartsWith('"')) { $opensslCmd.Trim('"') } else { $opensslCmd }
+        & $cmdToRun rsa -in $PRIVATE_KEY_FILE -pubout -out $PUBLIC_KEY_FILE
+    }
+}
 
 Write-Host "RSA Private Key: $PRIVATE_KEY_FILE"
 Write-Host "RSA Public Key: $PUBLIC_KEY_FILE"
