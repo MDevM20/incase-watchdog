@@ -38,6 +38,11 @@ export const createWatchdog = functions.https.onCall(async (data, context) => {
     hashed_token: hashedToken,
   });
 
+  if (is_test_mode) {
+    console.log(`Test mode: triggering immediate sweep for ${blindId}`);
+    await runSweep();
+  }
+
   return { secret_token: secretToken };
 });
 
