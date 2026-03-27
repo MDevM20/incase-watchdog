@@ -3,7 +3,7 @@ import * as admin from "firebase-admin";
 import * as crypto from "crypto";
 import { WatchdogTimer, DecryptedPayload } from "./types";
 import { decryptPayload } from "./watchdog_crypto";
-import { sendPushNotification, sendEmail } from "./notifications";
+import { sendPushNotification, sendEmail, sendEmergencyAccessEmail } from "./notifications";
 
 admin.initializeApp();
 
@@ -23,7 +23,10 @@ export const createWatchdog = functions
     throw new functions.https.HttpsError("invalid-argument", "Missing required fields");
   }
 
-  // Generate a random secret token
+  // 1. Decrypt the payload to extract protocol configuration
+  const payload: DecryptedPayload = await decryptPayload(encrypted_payload);
+
+  // 2. Generate a random secret token
   const secretToken = crypto.randomBytes(32).toString("hex");
   const hashedToken = crypto.createHash("sha256").update(secretToken).digest("hex");
 
@@ -31,13 +34,24 @@ export const createWatchdog = functions
     ? admin.firestore.Timestamp.fromMillis(Date.now() - (31 * 24 * 60 * 60 * 1000))
     : admin.firestore.Timestamp.now();
 
+  // 3. Persist the watchdog with strategy details
   const db = admin.firestore();
   await db.collection("watchdog_timers").doc(blindId).set({
     last_ping: lastPing,
     status: "active",
     fcm_token,
-    encrypted_payload,
+    encrypted_payload, // Keep for legacy/audit
     hashed_token: hashedToken,
+    
+    // Extracted Fields for easy sweeping
+    sharing_strategy: payload.sharing_strategy,
+    public_link: payload.public_link || null,
+    guardian_emails: payload.guardian_emails || [],
+    share_3: payload.share_3,
+    file_id: payload.file_id,
+    reminder_intervals: payload.reminder_intervals || [10, 15, 20],
+    owner_name: payload.owner_name || null,
+    hint: payload.hint || null,
   });
 
   if (is_test_mode) {
@@ -50,7 +64,6 @@ export const createWatchdog = functions
 
 /**
  * Daily Sweep Function (CRON-triggered every 24 hours).
- * Checks the last_ping of all active watchdog timers and escalates or triggers.
  */
 export const sweepWatchdog = functions
   .runWith({ secrets: ["RESEND_API_KEY", "WATCHDOG_PRIVATE_KEY"] })
@@ -60,30 +73,12 @@ export const sweepWatchdog = functions
   });
 
 /**
- * Manual Sweep Trigger (HTTPS Caller).
- * Allows manual execution of the sweep logic for testing or urgent needs.
- */
-export const forceSweepWatchdog = functions
-  .runWith({ secrets: ["RESEND_API_KEY", "WATCHDOG_PRIVATE_KEY"] })
-  .https.onCall(async (data, context) => {
-    if (!context.auth) {
-      throw new functions.https.HttpsError("unauthenticated", "Authentication required");
-    }
-    console.log("Manual sweep triggered by:", context.auth.uid);
-    await runSweep();
-    return { success: true, message: "Sweep completed. Check logs for details." };
-  });
-
-/**
  * Core Sweep Logic.
  */
 async function runSweep() {
   const db = admin.firestore();
   const now = admin.firestore.Timestamp.now();
-  const twentyDays = 20 * 24 * 60 * 60 * 1000;
-  const twentyFiveDays = 25 * 24 * 60 * 60 * 1000;
-  const thirtyDays = 30 * 24 * 60 * 60 * 1000;
-
+  
   console.log(`Starting watchdog sweep at ${now.toDate().toISOString()}`);
 
   const querySnapshot = await db
@@ -91,65 +86,66 @@ async function runSweep() {
     .where("status", "!=", "triggered")
     .get();
 
-  console.log(`Found ${querySnapshot.size} active/warning watchdogs to check.`);
-
   for (const doc of querySnapshot.docs) {
     const data = doc.data() as WatchdogTimer;
-    
-    if (!data.last_ping || typeof data.last_ping.toMillis !== "function") {
-      console.error(`Watchdog ${doc.id} has invalid last_ping field.`);
-      continue;
-    }
+    if (!data.last_ping) continue;
 
     const age = now.toMillis() - data.last_ping.toMillis();
-    console.log(`Processing watchdog ${doc.id}: status=${data.status}, age=${(age / (24 * 60 * 60 * 1000)).toFixed(2)} days`);
+    const intervals = data.reminder_intervals || [20, 25, 30];
+    
+    // Map intervals to millisecond thresholds
+    const day20 = intervals[0] * 24 * 60 * 60 * 1000;
+    const day25 = intervals[1] * 24 * 60 * 60 * 1000;
+    const day30 = intervals[2] * 24 * 60 * 60 * 1000;
 
     try {
-      // Day 30+: Trigger/Release
-      if (age >= thirtyDays) {
-        console.log(`Watchdog ${doc.id} reached 30 days. Triggering release...`);
-        const payload: DecryptedPayload = await decryptPayload(data.encrypted_payload);
+      // Threshold 3: Execution (e.g. Day 30)
+      if (age >= day30) {
+        console.log(`Watchdog ${doc.id} reached threshold. Executing protocol...`);
         
-        if (!payload.recipient_email) {
-          throw new Error("Decrypted payload missing recipient_email");
+        // Strategy-specific Execution
+        if (data.sharing_strategy === "google_drive_jit") {
+          const { grantGuardianAccess } = require("./google_drive_admin");
+          await grantGuardianAccess(data.file_id!, data.guardian_emails!);
         }
 
-        await sendEmail(
-          payload.recipient_email,
-          "Secure Vault Release: Watchdog Triggered",
-          `A security watchdog has expired. You are receiving File ID: ${payload.file_id} and Key Part A: ${payload.key_part_a}.`
-        );
+        // Notify Guardians
+        for (const email of data.guardian_emails || []) {
+          let instructions = `You have been granted access to a secure vault file belonging to ${data.owner_name || "a loved one"}.\n\n`;
+          instructions += `1. Access the file: ${data.public_link || "Check your 'Shared with me' folder in Google Drive."}\n`;
+          
+          if (data.sharing_strategy === "icloud_link") {
+            instructions += `IMPORTANT: The file is disguised as background telemetry data. You MUST rename it from '.dat' to '.pdf' to open it.\n`;
+          }
+
+          instructions += `2. Reconstruct the Recovery Key by combining your share (from Share 1 or 2) with the Server Share below.\n`;
+          instructions += `SERVER SHARE: ${data.share_3}\n`;
+          
+          if (data.hint) {
+            instructions += `HINT FROM OWNER: ${data.hint}\n`;
+          }
+
+          instructions += `\n3. Use the reconstructed key as the password to unlock the PDF.`;
+
+          await sendEmail(email, "Vault Release", instructions);
+        }
 
         await doc.ref.update({ status: "triggered", triggered_at: now });
-        console.log(`Watchdog ${doc.id} successfully triggered and status updated.`);
       } 
-      // Day 25: Warning 2
-      else if (age >= twentyFiveDays && data.status === "warning_1") {
-        console.log(`Watchdog ${doc.id} reached 25 days. Sending final warning...`);
-        await sendPushNotification(
-          data.fcm_token,
-          "Final Warning",
-          "Final Warning: Your secure vault will be shared in 5 days."
-        );
+      // Threshold 2: Warning (e.g. Day 25)
+      else if (age >= day25 && data.status === "warning_1") {
+        await sendPushNotification(data.fcm_token, "Final Warning", "Watchdog triggers in 5 days.");
         await doc.ref.update({ status: "warning_2" });
       } 
-      // Day 20: Warning 1
-      else if (age >= twentyDays && data.status === "active") {
-        console.log(`Watchdog ${doc.id} reached 20 days. Sending check-in reminder...`);
-        await sendPushNotification(
-          data.fcm_token,
-          "Check-in required!",
-          "Your watchdog triggers in 10 days."
-        );
+      // Threshold 1: Reminder (e.g. Day 20)
+      else if (age >= day20 && data.status === "active") {
+        await sendPushNotification(data.fcm_token, "Check-in required!", "Watchdog triggers in 10 days.");
         await doc.ref.update({ status: "warning_1" });
       }
     } catch (error) {
       console.error(`Error processing watchdog ${doc.id}:`, error);
     }
   }
-
-  console.log("Watchdog sweep finished.");
-  return null;
 }
 
 /**

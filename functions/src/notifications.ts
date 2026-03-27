@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import { Resend } from "resend";
+import { getEmergencyAccessTemplate } from "./templates";
 
 // Resend is initialized inside the sendEmail function to ensure environment variables are correctly loaded.
 
@@ -39,17 +40,18 @@ export async function sendEmail(to: string, subject: string, text: string, html?
   }
 
   const resend = new Resend(apiKey);
-  
+
   try {
     console.log(`Attempting to send email to: ${to} (Subject: ${subject})`);
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "InCase <incase@queentia.org>";
     const response = await resend.emails.send({
-      from: "Watchdog <onboarding@resend.dev>", // TODO: Change to your verified sender
+      from: fromEmail,
       to: [to],
       subject,
       text,
       html: html || text,
     });
-    
+
     if (response && (response as any).error) {
       console.error("Error response from Resend:", JSON.stringify((response as any).error));
     } else {
@@ -64,3 +66,21 @@ export async function sendEmail(to: string, subject: string, text: string, html?
     console.error("Unexpected exception in sendEmail:", err);
   }
 }
+
+/**
+ * Sends a rich Emergency Access notification email.
+ */
+export async function sendEmergencyAccessEmail(to: string, data: {
+  ownerName: string;
+  fileUrl: string;
+  masterKey: string;
+  hint: string;
+  fileId: string;
+}) {
+  const html = getEmergencyAccessTemplate(data);
+  const subject = `Emergency Access Granted for ${data.ownerName || "the Vault"}`;
+  const text = `Emergency Access has been granted for ${data.ownerName}'s vault. Master Key: ${data.masterKey}, Hint: ${data.hint}.`;
+  
+  return sendEmail(to, subject, text, html);
+}
+
