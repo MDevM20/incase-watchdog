@@ -120,17 +120,25 @@ if ($resendKey) {
         gcloud secrets create $RESEND_SECRET_NAME --replication-policy="automatic" --project $PROJECT_ID
     }
     
-    # Write key to temp file to avoid shelf character issues in CLI
-    $resendKey | Out-File -FilePath "resend_key.tmp" -NoNewline
+    # Write key to temp file to avoid BOM/UTF-16 character issues in CLI (Cloud Functions require clean UTF-8)
+    [System.IO.File]::WriteAllText("$pwd/resend_key.tmp", $resendKey.Trim())
     gcloud secrets versions add $RESEND_SECRET_NAME --data-file="resend_key.tmp" --project $PROJECT_ID
     Remove-Item "resend_key.tmp"
-    Write-Host "Resend API Key saved successfully." -ForegroundColor Green
+    Write-Host "Resend API Key saved successfully (clean UTF-8)." -ForegroundColor Green
 } else {
     Write-Host "Skipping Resend API Key setup." -ForegroundColor Yellow
 }
+
+Write-Host "`n--- 4. Granting Secret Access to Cloud Functions ---" -ForegroundColor Cyan
+$SERVICE_ACCOUNT = "$PROJECT_ID@appspot.gserviceaccount.com"
+Write-Host "Granting 'Secret Manager Secret Accessor' role to $SERVICE_ACCOUNT..."
+gcloud projects add-iam-policy-binding $PROJECT_ID `
+    --member="serviceAccount:$SERVICE_ACCOUNT" `
+    --role="roles/secretmanager.secretAccessor" `
+    --condition=None --quiet
 
 Write-Host "`n--- Done! ---" -ForegroundColor Green
 Write-Host "Next steps:"
 Write-Host "1. Note the File ID and Recipient Email for your watchdog timers."
 Write-Host "2. Use the Public Key in the client app to encrypt payloads."
-Write-Host "3. Ensure the Firebase Service Account has the 'Secret Manager Secret Accessor' role."
+Write-Host "3. You can now deploy your functions: firebase deploy --only functions"

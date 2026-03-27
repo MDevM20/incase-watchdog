@@ -2,7 +2,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as crypto from "crypto";
 import { WatchdogTimer, DecryptedPayload } from "./types";
-import { decryptPayload } from "./crypto";
+import { decryptPayload } from "./watchdog_crypto";
 import { sendPushNotification, sendEmail } from "./notifications";
 
 admin.initializeApp();
@@ -16,7 +16,7 @@ export const createWatchdog = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError("unauthenticated", "Authentication required");
   }
 
-  const { blindId, fcm_token, encrypted_payload } = data;
+  const { blindId, fcm_token, encrypted_payload, is_test_mode } = data;
   if (!blindId || !fcm_token || !encrypted_payload) {
     throw new functions.https.HttpsError("invalid-argument", "Missing required fields");
   }
@@ -25,9 +25,13 @@ export const createWatchdog = functions.https.onCall(async (data, context) => {
   const secretToken = crypto.randomBytes(32).toString("hex");
   const hashedToken = crypto.createHash("sha256").update(secretToken).digest("hex");
 
+  const lastPing = is_test_mode 
+    ? admin.firestore.Timestamp.fromMillis(Date.now() - (31 * 24 * 60 * 60 * 1000))
+    : admin.firestore.Timestamp.now();
+
   const db = admin.firestore();
   await db.collection("watchdog_timers").doc(blindId).set({
-    last_ping: admin.firestore.Timestamp.now(),
+    last_ping: lastPing,
     status: "active",
     fcm_token,
     encrypted_payload,
