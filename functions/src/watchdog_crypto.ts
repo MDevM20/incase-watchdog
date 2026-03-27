@@ -19,14 +19,7 @@ export async function decryptPayload(encryptedBase64: string): Promise<any> {
     const privateKeyPem = await getPrivateKey();
     const privateKey = forge.pki.privateKeyFromPem(privateKeyPem);
     
-    // Diagnostic logging
-    const keySize = (privateKey as any).n.bitLength();
-    console.log(`RSA Key size: ${keySize} bits`);
-    console.log(`Encrypted Base64 length: ${encryptedBase64.length}`);
-
     const encryptedBytes = forge.util.decode64(encryptedBase64);
-    console.log(`Decoded byte length: ${encryptedBytes.length} (expected ${keySize / 8})`);
-
     const decrypted = privateKey.decrypt(encryptedBytes, "RSA-OAEP", {
       md: forge.md.sha256.create(),
       mgf1: {

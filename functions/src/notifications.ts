@@ -50,10 +50,15 @@ export async function sendEmail(to: string, subject: string, text: string, html?
       html: html || text,
     });
     
-    if ((response as any).error) {
+    if (response && (response as any).error) {
       console.error("Error response from Resend:", JSON.stringify((response as any).error));
     } else {
-      console.log("Successfully sent email via Resend. ID:", (response as any).id || (response as any).data?.id);
+      const emailId = (response as any)?.id || (response as any)?.data?.id;
+      if (emailId) {
+        console.log("Successfully sent email via Resend. ID:", emailId);
+      } else {
+        console.warn("Resend reported success but no ID was returned. Full response:", JSON.stringify(response));
+      }
     }
   } catch (err) {
     console.error("Unexpected exception in sendEmail:", err);
