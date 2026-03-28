@@ -113,7 +113,9 @@ async function runSweep() {
         for (const email of data.guardian_emails || []) {
           await sendEmergencyAccessEmail(email, {
             ownerName: data.owner_name || "the Vault Owner",
-            fileUrl: data.public_link || "https://drive.google.com",
+            fileUrl: data.file_id 
+              ? `https://drive.google.com/file/d/${data.file_id}/view` 
+              : (data.public_link || "https://drive.google.com"),
             masterKey: data.share_3 || "N/A",
             hint: data.hint || "Please refer to original setup.",
             fileId: data.file_id || "vault_file"
