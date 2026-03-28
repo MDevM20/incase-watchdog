@@ -219,6 +219,6 @@ export function getEmergencyAccessTemplate(data: {
     </table>
 </body>
 </html>
-  \`;
+  `;
 }
 
