@@ -1,5 +1,5 @@
 import { google } from "googleapis";
-import { maskEmail } from "./utils";
+import { maskEmail, maskPII } from "./utils";
 
 /**
  * Gets the active Service Account email using the default GoogleAuth discovery.
@@ -55,7 +55,7 @@ export async function grantGuardianAccess(fileId: string, guardianEmails: string
   const drive = google.drive({ version: "v3", auth });
   const saEmail = await getServiceAccountEmail();
 
-  console.log(`[JIT] Attempting to grant access to ${guardianEmails.length} guardians for file ${fileId}`);
+  console.log(`[JIT] Attempting to grant access to ${guardianEmails.length} guardians for file ${maskPII(fileId)}`);
   console.log(`[JIT] Using Service Account: ${maskEmail(saEmail)}`);
 
   for (const email of guardianEmails) {

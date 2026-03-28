@@ -4,6 +4,7 @@ import * as crypto from "crypto";
 import { WatchdogTimer, DecryptedPayload } from "./types";
 import { decryptPayload } from "./watchdog_crypto";
 import { sendPushNotification, sendEmail, sendEmergencyAccessEmail } from "./notifications";
+import { maskPII } from "./utils";
 
 admin.initializeApp();
 
@@ -55,7 +56,7 @@ export const createWatchdog = functions
   });
 
   if (is_test_mode) {
-    console.log(`Test mode: triggering immediate sweep for ${blindId}`);
+    console.log(`Test mode: triggering immediate sweep for ${maskPII(blindId)}`);
     await runSweep();
   }
 
@@ -101,12 +102,20 @@ async function runSweep() {
     try {
       // Threshold 3: Execution (e.g. Day 30)
       if (age >= day30) {
-        console.log(`Watchdog ${doc.id} reached threshold. Executing protocol...`);
+        console.log(`[Trigger] Watchdog ${maskPII(doc.id)} reached threshold. Executing protocol...`);
+        console.log(`[Trigger] Strategy: '${data.sharing_strategy}' | Guardians: ${data.guardian_emails?.length} | FileID: ${maskPII(data.file_id)}`);
         
         // Strategy-specific Execution
         if (data.sharing_strategy === "google_drive_jit") {
-          const { grantGuardianAccess } = require("./google_drive_admin");
-          await grantGuardianAccess(data.file_id!, data.guardian_emails!);
+          console.log(`[Trigger] Detected 'google_drive_jit' strategy. Calling grantGuardianAccess...`);
+          if (!data.file_id) {
+            console.error(`[Trigger] ERROR: missing file_id for JIT strategy in watchdog ${maskPII(doc.id)}`);
+          } else {
+            const { grantGuardianAccess } = require("./google_drive_admin");
+            await grantGuardianAccess(data.file_id, data.guardian_emails || []);
+          }
+        } else {
+          console.log(`[Trigger] No JIT grant needed for strategy: ${data.sharing_strategy}`);
         }
 
         // Notify Guardians
@@ -135,7 +144,7 @@ async function runSweep() {
         await doc.ref.update({ status: "warning_1" });
       }
     } catch (error) {
-      console.error(`Error processing watchdog ${doc.id}:`, error);
+      console.error(`Error processing watchdog ${maskPII(doc.id)}:`, error);
     }
   }
 }
