@@ -34,16 +34,17 @@ export async function checkFileAccess(fileId: string): Promise<string> {
   try {
     const response = await drive.files.get({
       fileId: fileId,
-      fields: "name, userPermission, capabilities",
+      fields: "name, capabilities",
     });
 
-    const role = (response.data as any).userPermission?.role;
-    const canShare = response.data.capabilities?.canShare;
+    const capabilities = response.data.capabilities;
+    const canShare = capabilities?.canShare;
+    const canEdit = capabilities?.canEdit;
 
-    console.log(`[Check] File: ${response.data.name} | Role: ${role} | canShare: ${canShare}`);
+    console.log(`[Check] File: ${response.data.name} | canShare: ${canShare} | canEdit: ${canEdit}`);
 
-    if (role !== "owner" && role !== "writer" && !canShare) {
-       throw new Error(`Insufficient permissions. Service account role is '${role}' (canShare: ${canShare}), but 'Editor' (writer) is required to manage JIT grants.`);
+    if (!canShare && !canEdit) {
+       throw new Error(`Insufficient permissions. Service account lacks permission to manage file (canShare: ${canShare}, canEdit: ${canEdit}). 'Editor' (writer) access is required for JIT grants.`);
     }
 
     return response.data.name || "Untitled File";
