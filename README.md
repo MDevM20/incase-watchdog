@@ -176,6 +176,76 @@ await ping({
 });
 ```
 
+### 5. Google Drive JIT Setup (Critical)
+
+If you use the `google_drive_jit` strategy, the system operates as follows:
+1. **Setup**: You MUST share your private Google Drive file with the Service Account as an **Editor**.
+2. **Trigger**: After 30 days of inactivity, the Service Account will automatically grant **Reader** access to your specified guardians.
+
+To find your project's Service Account email, use the `getWatchdogServiceAccount` function (see below).
+
+---
+
+## 🔍 Usage
+
+### 1. Register a Watchdog
+
+Instead of writing directly to Firestore, call the `createWatchdog` HTTPS callable function. This function generates a `secret_token` for the client and stores a hash of it on the server for security.
+
+```typescript
+const create = firebase.functions().httpsCallable('createWatchdog');
+const { data } = await create({
+  blindId: 'your-blind-id',
+  fcm_token: 'your-fcm-token',
+  encrypted_payload: 'base64-rsa-encrypted-payload'
+});
+
+const secretToken = data.secret_token; // SAVE THIS SECURELY (e.g., Keychain)
+```
+
+**Fields stored in Firestore:**
+| Field | Type | Description |
+|---|---|---|
+| `last_ping` | Timestamp | Time of last check-in |
+| `status` | String | `"active"` |
+| `fcm_token` | String | Client device FCM token |
+| `encrypted_payload` | String | Base64-encoded RSA-encrypted payload |
+| `hashed_token` | String | SHA-256 hash of the client's secret token |
+| `sharing_strategy` | String | `"google_drive_jit"`, `"google_drive_link"`, or `"icloud_link"` |
+| `public_link` | String | Link to the encrypted vault (for emails) |
+| `guardian_emails` | Array | List of recipient email addresses |
+| `share_3` | String | The server-side key fragment (Part 1 of 2) |
+| `owner_name` | String | Name of the vault owner (for personalization) |
+| `hint` | String | Hint for the recipient's key fragment (Part 2 of 2) |
+| `reminder_intervals` | Array | Custom thresholds for warnings (e.g., `[20, 25, 30]`) |
+
+### 2. Payload Structure (JSON)
+
+```json
+{
+  "sharing_strategy": "google_drive_jit",
+  "public_link": "https://drive.google.com/sh/...",
+  "guardian_emails": ["guardian@example.com"],
+  "share_3": "SERVER_KEY_FRAGMENT",
+  "file_id": "SECURE_FILE_ID",
+  "reminder_intervals": [20, 25, 30],
+  "owner_name": "Sarah Chen",
+  "hint": "The name of your first childhood pet..."
+}
+```
+
+### 3. Checking In (Ping)
+
+Call the `pingWatchdog` function via your client app to reset the 30-day timer. You must provide the `secret_token` returned during registration.
+
+```typescript
+const ping = firebase.functions().httpsCallable('pingWatchdog');
+await ping({ 
+  blindId: 'your-blind-id', 
+  secret_token: 'your-saved-token' 
+});
+```
+
 ### 4. Deleting a Watchdog
 
 Call the `deleteWatchdog` function to completely remove a timer. Requires the `secret_token`.
@@ -186,6 +256,26 @@ await remove({
   blindId: 'your-blind-id', 
   secret_token: 'your-saved-token' 
 });
+```
+
+### 5. Utility Functions
+
+#### Get Service Account Email
+Call this to retrieve the email address you need to share your Drive files with.
+```typescript
+const getSA = firebase.functions().httpsCallable('getWatchdogServiceAccount');
+const { data } = await getSA({});
+console.log("Share your file with:", data.service_account_email);
+```
+
+#### Verify Access
+Call this during setup to ensure the Service Account can actually access your file.
+```typescript
+const verify = firebase.functions().httpsCallable('checkWatchdogAccess');
+const { data } = await verify({ file_id: 'YOUR_FILE_ID' });
+if (data.success) {
+  console.log("Access verified for:", data.file_name);
+}
 ```
 
 Requires **Anonymous Authentication** to be signed in.

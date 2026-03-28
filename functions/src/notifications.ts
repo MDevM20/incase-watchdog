@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import { Resend } from "resend";
 import { getEmergencyAccessTemplate } from "./templates";
+import { maskEmail } from "./utils";
 
 // Resend is initialized inside the sendEmail function to ensure environment variables are correctly loaded.
 
@@ -42,7 +43,7 @@ export async function sendEmail(to: string, subject: string, text: string, html?
   const resend = new Resend(apiKey);
 
   try {
-    console.log(`Attempting to send email to: ${to} (Subject: ${subject})`);
+    console.log(`Attempting to send email to: ${maskEmail(to)} (Subject: ${subject})`);
     const fromEmail = process.env.RESEND_FROM_EMAIL || "InCase <incase@queentia.org>";
     const response = await resend.emails.send({
       from: fromEmail,

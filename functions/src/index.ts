@@ -210,3 +210,37 @@ export const deleteWatchdog = functions.https.onCall(async (data, context) => {
 
   return { success: true };
 });
+
+/**
+ * Returns the Service Account email address for the watchdog.
+ * Users need this to share their Google Drive files.
+ */
+export const getWatchdogServiceAccount = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError("unauthenticated", "Authentication required");
+  }
+  const { getServiceAccountEmail } = require("./google_drive_admin");
+  const email = await getServiceAccountEmail();
+  return { service_account_email: email };
+});
+
+/**
+ * Verifies if the Service Account has access to a specific file.
+ * Useful for the mobile app to check setup before finalization.
+ */
+export const checkWatchdogAccess = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError("unauthenticated", "Authentication required");
+  }
+  const { file_id } = data;
+  if (!file_id) {
+    throw new functions.https.HttpsError("invalid-argument", "Missing file_id");
+  }
+  const { checkFileAccess } = require("./google_drive_admin");
+  try {
+    const fileName = await checkFileAccess(file_id);
+    return { success: true, file_name: fileName };
+  } catch (error: any) {
+    throw new functions.https.HttpsError("permission-denied", error.message);
+  }
+});
