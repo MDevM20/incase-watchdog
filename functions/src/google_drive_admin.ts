@@ -21,7 +21,8 @@ export async function getServiceAccountEmail(): Promise<string> {
 }
 
 /**
- * Verifies if the Service Account has 'reader' or higher access to a file.
+ * Verifies if the Service Account has 'writer' or 'owner' access to a file.
+ * This is required for JIT strategies to manage permissions.
  * Returns the file name if successful, throws error otherwise.
  */
 export async function checkFileAccess(fileId: string): Promise<string> {
@@ -33,13 +34,23 @@ export async function checkFileAccess(fileId: string): Promise<string> {
   try {
     const response = await drive.files.get({
       fileId: fileId,
-      fields: "name",
+      fields: "name, userPermission, capabilities",
     });
+
+    const role = (response.data as any).userPermission?.role;
+    const canShare = response.data.capabilities?.canShare;
+
+    console.log(`[Check] File: ${response.data.name} | Role: ${role} | canShare: ${canShare}`);
+
+    if (role !== "owner" && role !== "writer" && !canShare) {
+       throw new Error(`Insufficient permissions. Service account role is '${role}' (canShare: ${canShare}), but 'Editor' (writer) is required to manage JIT grants.`);
+    }
+
     return response.data.name || "Untitled File";
   } catch (error: any) {
     console.error(`Service Account checkFileAccess failed for ${fileId}:`, error.message);
     const saEmail = await getServiceAccountEmail();
-    throw new Error(`InCase Service Account cannot access file ${fileId}. Ensure it is shared with: ${saEmail} as 'Editor'.`);
+    throw new Error(`InCase Service Account cannot manage file ${fileId}. Ensure it is shared with: ${saEmail} as 'Editor'. Original error: ${error.message}`);
   }
 }
 

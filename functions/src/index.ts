@@ -35,7 +35,26 @@ export const createWatchdog = functions
     ? admin.firestore.Timestamp.fromMillis(Date.now() - (31 * 24 * 60 * 60 * 1000))
     : admin.firestore.Timestamp.now();
 
-  // 3. Persist the watchdog with strategy details
+  // 3. If JIT is used, verify that the Service Account has access now
+  const normalizedStrategy = (payload.sharing_strategy || "").toString().toLowerCase();
+  if (normalizedStrategy === "google_drive_jit" || normalizedStrategy === "googledrivejit") {
+    if (!payload.file_id) {
+       throw new functions.https.HttpsError("invalid-argument", "file_id is required for Google Drive JIT strategy");
+    }
+    const { checkFileAccess, getServiceAccountEmail } = require("./google_drive_admin");
+    try {
+      await checkFileAccess(payload.file_id);
+    } catch (error: any) {
+      const saEmail = await getServiceAccountEmail();
+      console.error(`Setup Check Failed: Service Account (${saEmail}) cannot access file ${payload.file_id}. Error: ${error.message}`);
+      throw new functions.https.HttpsError(
+        "permission-denied", 
+        `InCase Service Account cannot access your file. Please share file ${payload.file_id} with '${saEmail}' as 'Editor' before finalizing.`
+      );
+    }
+  }
+
+  // 4. Persist the watchdog with strategy details
   const db = admin.firestore();
   await db.collection("watchdog_timers").doc(blindId).set({
     last_ping: lastPing,
