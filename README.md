@@ -7,7 +7,8 @@ A secure, anonymous "Dead Man's Switch" built with Firebase Cloud Functions. It 
 - **Anonymous**: Uses client-generated BlindIDs (Hashed Email + DeviceSalt) — no personal data stored.
 - **Secure**: RSA-encrypted payloads with private keys stored in **Google Secret Manager**.
 - **Automated**: A daily CRON sweep handles escalation (Day 20 / Day 25) and final trigger (Day 30).
-- **Multi-channel**: FCM push warnings + Resend email for key release.
+- **Multi-channel**: FCM push warnings + Rich HTML email via Resend for key release.
+- **Premium Design**: Dark-themed, professionally designed notifications.
 
 ## 🛠️ Technology Stack
 
@@ -28,6 +29,7 @@ incase-watchdog/
 │   │   ├── index.ts          # sweepWatchdog (CRON) & pingWatchdog (HTTPS)
 │   │   ├── crypto.ts         # RSA decryption + Secret Manager
 │   │   ├── notifications.ts  # FCM push + Resend email
+│   │   ├── templates.ts      # HTML email templates
 │   │   └── types.ts          # Firestore schema types
 │   ├── .env.example          # Environment variable template
 │   └── package.json
@@ -139,14 +141,26 @@ const secretToken = data.secret_token; // SAVE THIS SECURELY (e.g., Keychain)
 | `fcm_token` | String | Client device FCM token |
 | `encrypted_payload` | String | Base64-encoded RSA-encrypted payload |
 | `hashed_token` | String | SHA-256 hash of the client's secret token |
+| `sharing_strategy` | String | `"google_drive_jit"`, `"google_drive_link"`, or `"icloud_link"` |
+| `public_link` | String | Link to the encrypted vault (for emails) |
+| `guardian_emails` | Array | List of recipient email addresses |
+| `share_3` | String | The server-side key fragment (Part 1 of 2) |
+| `owner_name` | String | Name of the vault owner (for personalization) |
+| `hint` | String | Hint for the recipient's key fragment (Part 2 of 2) |
+| `reminder_intervals` | Array | Custom thresholds for warnings (e.g., `[20, 25, 30]`) |
 
 ### 2. Payload Structure (JSON)
 
 ```json
 {
-  "recipient_email": "recipient@example.com",
+  "sharing_strategy": "google_drive_jit",
+  "public_link": "https://drive.google.com/sh/...",
+  "guardian_emails": ["guardian@example.com"],
+  "share_3": "SERVER_KEY_FRAGMENT",
   "file_id": "SECURE_FILE_ID",
-  "key_part_a": "SECRET_KEY_FRAGMENT"
+  "reminder_intervals": [20, 25, 30],
+  "owner_name": "Sarah Chen",
+  "hint": "The name of your first childhood pet..."
 }
 ```
 
