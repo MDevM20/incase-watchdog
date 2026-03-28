@@ -1,7 +1,7 @@
 import { Timestamp } from "firebase-admin/firestore";
 
 export type WatchdogStatus = "active" | "warning_1" | "warning_2" | "triggered";
-export type SharingStrategy = "google_drive_jit" | "google_drive_link" | "icloud_link";
+export type SharingStrategy = "google_drive_jit" | "google_drive_link" | "icloud_link" | string;
 
 export interface WatchdogTimer {
   last_ping: Timestamp;

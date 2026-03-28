@@ -45,7 +45,7 @@ export const createWatchdog = functions
     hashed_token: hashedToken,
     
     // Extracted Fields for easy sweeping
-    sharing_strategy: payload.sharing_strategy,
+    sharing_strategy: (payload.sharing_strategy || "").toString(),
     public_link: payload.public_link || null,
     guardian_emails: payload.guardian_emails || [],
     share_3: payload.share_3,
@@ -103,11 +103,13 @@ async function runSweep() {
       // Threshold 3: Execution (e.g. Day 30)
       if (age >= day30) {
         console.log(`[Trigger] Watchdog ${maskPII(doc.id)} reached threshold. Executing protocol...`);
-        console.log(`[Trigger] Strategy: '${data.sharing_strategy}' | Guardians: ${data.guardian_emails?.length} | FileID: ${maskPII(data.file_id)}`);
+        
+        const strategy = (data.sharing_strategy || "").toString().toLowerCase();
+        console.log(`[Trigger] Normalized Strategy: '${strategy}' | Guardians: ${data.guardian_emails?.length} | FileID: ${maskPII(data.file_id)}`);
         
         // Strategy-specific Execution
-        if (data.sharing_strategy === "google_drive_jit") {
-          console.log(`[Trigger] Detected 'google_drive_jit' strategy. Calling grantGuardianAccess...`);
+        if (strategy === "google_drive_jit" || strategy === "googledrivejit") {
+          console.log(`[Trigger] Detected JIT strategy. Calling grantGuardianAccess...`);
           if (!data.file_id) {
             console.error(`[Trigger] ERROR: missing file_id for JIT strategy in watchdog ${maskPII(doc.id)}`);
           } else {
