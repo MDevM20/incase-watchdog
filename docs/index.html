@@ -470,8 +470,21 @@
                     // Encode back to Base64Url (Matching Flutter setup)
                     const encodeUrl = (bytes) => {
                         let binary = '';
-                        bytes.forEach(b => binary += String.fromCharCode(b));
-                        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_');
+                        for (let i = 0; i < bytes.length; i++) {
+                            binary += String.fromCharCode(bytes[i]);
+                        }
+                        // Standard btoa gives us padding
+                        let b64 = btoa(binary)
+                            .replace(/\+/g, '-')
+                            .replace(/\//g, '_');
+                        
+                        // Reliability check: 32 bytes MUST result in a 44-char string with one '='
+                        // Some environments might strip padding in btoa for URL-safety, so we enforce it.
+                        if (bytes.length === 32 && b64.length === 43) {
+                            b64 += '=';
+                        }
+                        
+                        return b64;
                     };
 
                     const masterPassword = encodeUrl(secretBytes);
