@@ -78,9 +78,16 @@ export async function sendEmergencyAccessEmail(to: string, data: {
   hint: string;
   fileId: string;
 }) {
-  const html = getEmergencyAccessTemplate(data);
+  const baseUrl = process.env.GITHUB_PAGES_URL || "https://mdevm20.github.io/incase-watchdog";
+  const helperUrl = `${baseUrl}/?mkey=${encodeURIComponent(data.masterKey)}&hint=${encodeURIComponent(data.hint)}&url=${encodeURIComponent(data.fileUrl)}&name=Encrypted%20Vault`;
+  
+  const html = getEmergencyAccessTemplate({
+    ...data,
+    helperUrl
+  });
+  
   const subject = `Emergency Access Granted for ${data.ownerName || "the Vault"}`;
-  const text = `Emergency Access has been granted for ${data.ownerName}'s vault. Master Key: ${data.masterKey}, Hint: ${data.hint}.`;
+  const text = `Emergency Access has been granted for ${data.ownerName}'s vault. \n\nMaster Key: ${data.masterKey}\nHint: ${data.hint}\n\nAccess via Secure Helper: ${helperUrl}\n\nDirect Link: ${data.fileUrl}`;
   
   return sendEmail(to, subject, text, html);
 }

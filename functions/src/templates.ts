@@ -4,11 +4,12 @@
 export function getEmergencyAccessTemplate(data: {
   ownerName: string;
   fileUrl: string;
+  helperUrl: string;
   masterKey: string;
   hint: string;
   fileId: string;
 }) {
-  const { ownerName, fileUrl, masterKey, hint, fileId } = data;
+  const { ownerName, fileUrl, helperUrl, masterKey, hint, fileId } = data;
   const primaryColor = "#00FF9D";
   const bgColor = "#0A0E14";
   const cardBg = "#161B22";
@@ -70,21 +71,28 @@ export function getEmergencyAccessTemplate(data: {
                                                     <img src="https://img.icons8.com/ios-filled/24/${primaryColor.replace('#', '')}/lock.png" width="20" height="20" style="display: block;" />
                                                 </td>
                                                 <td style="padding-left: 8px; color: ${textColor}; font-size: 18px; font-weight: 700;">
-                                                    Vault Location
+                                                    Vault Access Options
                                                 </td>
                                             </tr>
                                         </table>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td style="padding-bottom: 16px; color: ${mutedTextColor}; font-size: 14px; line-height: 1.5;">
-                                        Download the encrypted container. You will need the access keys below to decrypt its contents.
+                                    <td style="padding-bottom: 20px; color: ${mutedTextColor}; font-size: 14px; line-height: 1.5;">
+                                        Choose how you would like to access the encrypted container. We recommend using our Secure Helper for a seamless experience.
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td>
-                                        <a href="${fileUrl}" style="display: inline-block; background-color: ${primaryColor}; color: #000000; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 14px;">
-                                            Download Encrypted Vault PDF
+                                    <td style="padding-bottom: 16px;">
+                                        <a href="${helperUrl}" style="display: block; text-align: center; background-color: ${primaryColor}; color: #000000; padding: 16px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 15px;">
+                                            Option 1: Use Secure Decryption Helper (Recommended)
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align: center;">
+                                        <a href="${fileUrl}" style="display: inline-block; color: ${mutedTextColor}; font-size: 13px; text-decoration: underline; font-weight: 500;">
+                                            Option 2: Direct Download from Google Drive
                                         </a>
                                     </td>
                                 </tr>
