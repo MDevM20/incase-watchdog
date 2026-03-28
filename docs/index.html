@@ -289,7 +289,12 @@
                 <div class="input-group">
                     <input type="text" id="shareA" class="text-input" placeholder="Paste owner's part here..." autofocus>
                 </div>
-                <div id="hintText" style="color: var(--accent); font-size: 0.8rem; margin-top: 10px; display: none;"></div>
+                <!-- Selection for Guardian Index -->
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button id="btnG1" class="btn btn-secondary" style="padding: 10px; font-size: 0.75rem; flex: 1; border-color: var(--border);">I am Guardian A</button>
+                    <button id="btnG2" class="btn btn-secondary" style="padding: 10px; font-size: 0.75rem; flex: 1; border-color: var(--primary);">I am Guardian B</button>
+                </div>
+                <div id="hintText" style="color: var(--accent); font-size: 0.8rem; margin-top: 14px; display: none;"></div>
             </div>
 
             <button id="reconstructBtn" class="btn">
@@ -392,6 +397,8 @@
         }
 
         // --- UI & Lifecycle ---
+        let selectedGuardianIndex = 2; // Default to Guardian B
+
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
             const watchdogShareBase64 = params.get('mkey') || '';
@@ -404,6 +411,8 @@
             const resultContainer = document.getElementById('resultContainer');
             const passDisplay = document.getElementById('reconstructedPassword');
             const errorMsg = document.getElementById('errorMsg');
+            const btnG1 = document.getElementById('btnG1');
+            const btnG2 = document.getElementById('btnG2');
 
             if (watchdogShareBase64) {
                 shareBInput.value = watchdogShareBase64;
@@ -412,6 +421,19 @@
                 hintDisplay.style.display = 'block';
                 hintDisplay.textContent = `Owner's Hint: "${hint}"`;
             }
+
+            // Selection Logic for Guardian Number
+            btnG1.addEventListener('click', () => {
+                selectedGuardianIndex = 1;
+                btnG1.style.borderColor = 'var(--primary)';
+                btnG2.style.borderColor = 'var(--border)';
+            });
+
+            btnG2.addEventListener('click', () => {
+                selectedGuardianIndex = 2;
+                btnG2.style.borderColor = 'var(--primary)';
+                btnG1.style.borderColor = 'var(--border)';
+            });
 
             document.getElementById('reconstructBtn').addEventListener('click', () => {
                 const sA = shareAInput.value.trim();
@@ -431,13 +453,18 @@
 
                     const shareAData = decode(sA);
                     const shareBData = decode(sB);
+                    
+                    if (shareAData.length !== 32 || shareBData.length !== 32) {
+                        throw new Error();
+                    }
 
-                    // We try index 2 for the manual share (most likely for Guardian B)
-                    // and index 3 for the watchdog link.
-                    const secretBytes = reconstructSecret({
-                        2: shareAData,
-                        3: shareBData
-                    });
+                    // Reconstruct using selected index for the manual share
+                    // (Guardian A = 1, Guardian B = 2)
+                    // and index 3 for the watchdog (shareB)
+                    const shares = { 3: shareBData };
+                    shares[selectedGuardianIndex] = shareAData;
+
+                    const secretBytes = reconstructSecret(shares);
 
                     // Encode back to Base64Url (Matching Flutter setup)
                     const encodeUrl = (bytes) => {
