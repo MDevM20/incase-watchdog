@@ -111,23 +111,13 @@ async function runSweep() {
 
         // Notify Guardians
         for (const email of data.guardian_emails || []) {
-          let instructions = `You have been granted access to a secure vault file belonging to ${data.owner_name || "a loved one"}.\n\n`;
-          instructions += `1. Access the file: ${data.public_link || "Check your 'Shared with me' folder in Google Drive."}\n`;
-          
-          if (data.sharing_strategy === "icloud_link") {
-            instructions += `IMPORTANT: The file is disguised as background telemetry data. You MUST rename it from '.dat' to '.pdf' to open it.\n`;
-          }
-
-          instructions += `2. Reconstruct the Recovery Key by combining your share (from Share 1 or 2) with the Server Share below.\n`;
-          instructions += `SERVER SHARE: ${data.share_3}\n`;
-          
-          if (data.hint) {
-            instructions += `HINT FROM OWNER: ${data.hint}\n`;
-          }
-
-          instructions += `\n3. Use the reconstructed key as the password to unlock the PDF.`;
-
-          await sendEmail(email, "Vault Release", instructions);
+          await sendEmergencyAccessEmail(email, {
+            ownerName: data.owner_name || "the Vault Owner",
+            fileUrl: data.public_link || "https://drive.google.com",
+            masterKey: data.share_3 || "N/A",
+            hint: data.hint || "Please refer to original setup.",
+            fileId: data.file_id || "vault_file"
+          });
         }
 
         await doc.ref.update({ status: "triggered", triggered_at: now });
