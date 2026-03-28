@@ -104,23 +104,12 @@ async function runSweep() {
       if (age >= day30) {
         console.log(`[Trigger] Watchdog ${maskPII(doc.id)} reached threshold. Executing protocol...`);
         
-        const strategy = (data.sharing_strategy || "").toString().toLowerCase();
-        console.log(`[Trigger] Normalized Strategy: '${strategy}' | Guardians: ${data.guardian_emails?.length} | FileID: ${maskPII(data.file_id)}`);
+        const strategy = (data.sharing_strategy || "").toString();
+        const normalized = strategy.toLowerCase();
         
-        // Strategy-specific Execution
-        if (strategy === "google_drive_jit" || strategy === "googledrivejit") {
-          console.log(`[Trigger] Detected JIT strategy. Calling grantGuardianAccess...`);
-          if (!data.file_id) {
-            console.error(`[Trigger] ERROR: missing file_id for JIT strategy in watchdog ${maskPII(doc.id)}`);
-          } else {
-            const { grantGuardianAccess } = require("./google_drive_admin");
-            await grantGuardianAccess(data.file_id, data.guardian_emails || []);
-          }
-        } else {
-          console.log(`[Trigger] No JIT grant needed for strategy: ${data.sharing_strategy}`);
-        }
-
-        // Notify Guardians
+        console.log(`[Trigger] Strategy: '${strategy}' | Guardians: ${data.guardian_emails?.length} | FileID: ${maskPII(data.file_id)}`);
+        
+        // 1. All strategies: Send Notification Email (regardless of platform)
         for (const email of data.guardian_emails || []) {
           await sendEmergencyAccessEmail(email, {
             ownerName: data.owner_name || "the Vault Owner",
@@ -131,6 +120,19 @@ async function runSweep() {
             hint: data.hint || "Please refer to original setup.",
             fileId: data.file_id || "vault_file"
           });
+        }
+
+        // 2. Just-In-Time Grants: Only for Google Drive JIT strategy
+        if (normalized === "google_drive_jit" || normalized === "googledrivejit") {
+          console.log(`[Trigger] Executing Just-In-Time permissions grant...`);
+          if (!data.file_id) {
+            console.error(`[Trigger] ERROR: missing file_id for JIT strategy in watchdog ${maskPII(doc.id)}`);
+          } else {
+            const { grantGuardianAccess } = require("./google_drive_admin");
+            await grantGuardianAccess(data.file_id, data.guardian_emails || []);
+          }
+        } else {
+          console.log(`[Trigger] No extra permissions grant needed for strategy: ${strategy}`);
         }
 
         await doc.ref.update({ status: "triggered", triggered_at: now });
