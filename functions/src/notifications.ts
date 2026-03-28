@@ -78,7 +78,7 @@ export async function sendEmergencyAccessEmail(to: string, data: {
   hint: string;
   fileId: string;
 }) {
-  const baseUrl = process.env.GITHUB_PAGES_URL || "https://mdevm20.github.io/incase-watchdog";
+  const baseUrl = process.env.GITHUB_PAGES_URL || "https://incase.queentia.org";
   const helperUrl = `${baseUrl}/?mkey=${encodeURIComponent(data.masterKey)}&hint=${encodeURIComponent(data.hint)}&url=${encodeURIComponent(data.fileUrl)}&name=Encrypted%20Vault`;
   
   const html = getEmergencyAccessTemplate({
