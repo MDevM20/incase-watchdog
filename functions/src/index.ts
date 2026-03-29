@@ -54,24 +54,18 @@ export const createWatchdog = functions
     }
   }
 
-  // 4. Persist the watchdog with strategy details
+  // 4. Persist the watchdog with minimized metadata
   const db = admin.firestore();
   await db.collection("watchdog_timers").doc(blindId).set({
     last_ping: lastPing,
     status: "active",
-    fcm_token,
-    encrypted_payload, // Keep for legacy/audit
+    fcm_token: data.fcm_token || null, // Optional: for backwards compatibility or high-perf push
+    encrypted_payload,   // Only this contains the sensitive PII (emails, names, hint, etc.)
     hashed_token: hashedToken,
     
-    // Extracted Fields for easy sweeping
+    // Metadata for efficient sweeping (non-sensitive)
     sharing_strategy: (payload.sharing_strategy || "").toString(),
-    public_link: payload.public_link || null,
-    guardian_emails: payload.guardian_emails || [],
-    share_3: payload.share_3,
-    file_id: payload.file_id,
     reminder_intervals: payload.reminder_intervals || [10, 15, 20],
-    owner_name: payload.owner_name || null,
-    hint: payload.hint || null,
   });
 
   if (is_test_mode) {
@@ -121,34 +115,36 @@ async function runSweep() {
     try {
       // Threshold 3: Execution (e.g. Day 30)
       if (age >= day30) {
-        console.log(`[Trigger] Watchdog ${maskPII(doc.id)} reached threshold. Executing protocol...`);
+        console.log(`[Trigger] Watchdog ${maskPII(doc.id)} reached threshold. Decrypting protocol...`);
         
-        const strategy = (data.sharing_strategy || "").toString();
+        // Decrypt full details for execution
+        const payload: DecryptedPayload = await decryptPayload(data.encrypted_payload);
+        const strategy = (payload.sharing_strategy || "").toString();
         const normalized = strategy.toLowerCase();
         
-        console.log(`[Trigger] Strategy: '${strategy}' | Guardians: ${data.guardian_emails?.length} | FileID: ${maskPII(data.file_id)}`);
+        console.log(`[Trigger] Strategy: '${strategy}' | Guardians: ${payload.guardian_emails?.length} | FileID: ${maskPII(payload.file_id)}`);
         
-        // 1. All strategies: Send Notification Email (regardless of platform)
-        for (const email of data.guardian_emails || []) {
+        // 1. All strategies: Send Notification Email
+        for (const email of payload.guardian_emails || []) {
           await sendEmergencyAccessEmail(email, {
-            ownerName: data.owner_name || "the Vault Owner",
-            fileUrl: data.file_id 
-              ? `https://drive.google.com/file/d/${data.file_id}/view` 
-              : (data.public_link || "https://drive.google.com"),
-            masterKey: data.share_3 || "N/A",
-            hint: data.hint || "Please refer to original setup.",
-            fileId: data.file_id || "vault_file"
+            ownerName: payload.owner_name || "the Vault Owner",
+            fileUrl: payload.file_id 
+              ? `https://drive.google.com/file/d/${payload.file_id}/view` 
+              : (payload.public_link || "https://drive.google.com"),
+            masterKey: payload.share_3 || "N/A",
+            hint: payload.hint || "Please refer to original setup.",
+            fileId: payload.file_id || "vault_file"
           });
         }
 
         // 2. Just-In-Time Grants: Only for Google Drive JIT strategy
         if (normalized === "google_drive_jit" || normalized === "googledrivejit") {
           console.log(`[Trigger] Executing Just-In-Time permissions grant...`);
-          if (!data.file_id) {
+          if (!payload.file_id) {
             console.error(`[Trigger] ERROR: missing file_id for JIT strategy in watchdog ${maskPII(doc.id)}`);
           } else {
             const { grantGuardianAccess } = require("./google_drive_admin");
-            await grantGuardianAccess(data.file_id, data.guardian_emails || []);
+            await grantGuardianAccess(payload.file_id, payload.guardian_emails || []);
           }
         } else {
           console.log(`[Trigger] No extra permissions grant needed for strategy: ${strategy}`);
@@ -158,12 +154,20 @@ async function runSweep() {
       } 
       // Threshold 2: Warning (e.g. Day 25)
       else if (age >= day25 && data.status === "warning_1") {
-        await sendPushNotification(data.fcm_token, "Final Warning", "Watchdog triggers in 5 days.");
+        const payload: DecryptedPayload = await decryptPayload(data.encrypted_payload);
+        const token = payload.fcm_token || data.fcm_token;
+        if (token) {
+          await sendPushNotification(token, "Final Warning", "Watchdog triggers in 5 days.");
+        }
         await doc.ref.update({ status: "warning_2" });
       } 
       // Threshold 1: Reminder (e.g. Day 20)
       else if (age >= day20 && data.status === "active") {
-        await sendPushNotification(data.fcm_token, "Check-in required!", "Watchdog triggers in 10 days.");
+        const payload: DecryptedPayload = await decryptPayload(data.encrypted_payload);
+        const token = payload.fcm_token || data.fcm_token;
+        if (token) {
+          await sendPushNotification(token, "Check-in required!", "Watchdog triggers in 10 days.");
+        }
         await doc.ref.update({ status: "warning_1" });
       }
     } catch (error) {
