@@ -4,41 +4,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>InCase | Vault Reconstructor</title>
+    <title>InCase | Your Ironclad Digital Sanctuary</title>
     <link rel="icon" type="image/png" href="icon.png">
+
+    <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
+    <!-- Landing Page (Tailwind) -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-container": "#001c10",
+                        "on-secondary-container": "#abb9d2",
+                        "surface-tint": "#4edea3",
+                        "on-secondary-fixed-variant": "#3a485c",
+                        "secondary-fixed": "#d5e3fd",
+                        "on-tertiary-fixed-variant": "#004c69",
+                        "surface-container": "#171f33",
+                        "surface-dim": "#0b1326",
+                        "inverse-surface": "#dae2fd",
+                        "primary": "#4edea3",
+                        "primary-fixed-dim": "#4edea3",
+                        "on-secondary": "#233144",
+                        "on-error-container": "#ffdad6",
+                        "tertiary-fixed": "#c4e7ff",
+                        "on-surface": "#dae2fd",
+                        "on-error": "#690005",
+                        "surface-bright": "#31394d",
+                        "background": "#0b1326",
+                        "tertiary-container": "#001a27",
+                        "surface-container-low": "#131b2e",
+                        "surface-container-highest": "#2d3449",
+                        "error": "#ffb4ab",
+                        "secondary-container": "#3c4a5e",
+                        "outline": "#909097",
+                        "on-primary-fixed-variant": "#005236",
+                        "primary-fixed": "#6ffbbe",
+                        "tertiary-fixed-dim": "#7bd0ff",
+                        "on-tertiary-fixed": "#001e2c",
+                        "secondary": "#b9c7e0",
+                        "on-tertiary": "#00354a",
+                        "on-primary-fixed": "#002113",
+                        "secondary-fixed-dim": "#b9c7e0",
+                        "tertiary": "#7bd0ff",
+                        "on-primary": "#003824",
+                        "surface-variant": "#2d3449",
+                        "on-background": "#dae2fd",
+                        "surface": "#0b1326",
+                        "surface-container-high": "#222a3d",
+                        "error-container": "#93000a",
+                        "inverse-on-surface": "#283044",
+                        "on-secondary-fixed": "#0d1c2f",
+                        "on-primary-container": "#009365",
+                        "inverse-primary": "#006c49",
+                        "surface-container-lowest": "#060e20",
+                        "on-tertiary-container": "#008abb",
+                        "on-surface-variant": "#c6c6cd",
+                        "outline-variant": "#45464d"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
     <style>
-        :root {
-            --primary: #00FF9D;
-            --primary-glow: rgba(0, 255, 157, 0.4);
-            --bg: #0A0E14;
-            --card-bg: rgba(22, 27, 34, 0.7);
-            --border: rgba(48, 54, 61, 0.8);
-            --text: #FFFFFF;
-            --text-muted: #94A3B8;
-            --accent: #60A5FA;
-            --error: #FF4D4D;
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        .bg-vault-gradient {
+            background: radial-gradient(circle at top right, rgba(78, 222, 163, 0.08), transparent 40%),
+                radial-gradient(circle at bottom left, rgba(123, 208, 255, 0.05), transparent 40%);
         }
 
-        body {
-            background-color: var(--bg);
-            color: var(--text);
+        .glass-panel {
+            background: rgba(49, 57, 77, 0.6);
+            backdrop-filter: blur(20px);
+        }
+
+        /* Scoped styles for recovery helper */
+        body.recovery-mode {
+            background-color: #0A0E14;
+            color: #FFFFFF;
             font-family: 'Inter', -apple-system, sans-serif;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             overflow-x: hidden;
+            margin: 0;
+            padding: 0;
         }
 
-        .bg-glow {
+        body.recovery-mode .bg-glow {
             position: fixed;
             top: 0;
             left: 0;
@@ -50,40 +119,40 @@
                 radial-gradient(circle at 10% 80%, rgba(96, 165, 250, 0.05) 0%, transparent 40%);
         }
 
-        .container {
+        body.recovery-mode .recovery-container {
             max-width: 900px;
             margin: 0 auto;
             padding: 60px 20px;
             flex-grow: 1;
         }
 
-        header {
+        body.recovery-mode header.recovery-header {
             text-align: center;
             margin-bottom: 60px;
         }
 
-        .brand {
+        body.recovery-mode .brand-recovery {
             font-size: 3.5rem;
             font-weight: 800;
             letter-spacing: -0.06em;
-            color: var(--primary);
+            color: #00FF9D;
             margin-bottom: 20px;
-            text-shadow: 0 0 30px var(--primary-glow);
+            text-shadow: 0 0 30px rgba(0, 255, 157, 0.4);
         }
 
-        .tagline {
+        body.recovery-mode .tagline-recovery {
             font-size: 1.1rem;
-            color: var(--text-muted);
+            color: #94A3B8;
             max-width: 600px;
             margin: 0 auto;
             line-height: 1.6;
         }
 
-        .card {
-            background: var(--card-bg);
+        body.recovery-mode .recovery-card {
+            background: rgba(22, 27, 34, 0.7);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--border);
+            border: 1px solid rgba(48, 54, 61, 0.8);
             border-radius: 24px;
             padding: 40px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
@@ -91,15 +160,10 @@
             margin: 0 auto;
         }
 
-        .helper-header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-
-        .badge {
+        body.recovery-mode .badge {
             display: inline-block;
             background: rgba(0, 255, 157, 0.1);
-            color: var(--primary);
+            color: #00FF9D;
             border: 1px solid rgba(0, 255, 157, 0.3);
             border-radius: 100px;
             padding: 6px 16px;
@@ -110,13 +174,13 @@
             margin-bottom: 12px;
         }
 
-        .field {
+        body.recovery-mode .field {
             margin-bottom: 24px;
         }
 
-        .label {
+        body.recovery-mode .label {
             display: block;
-            color: var(--text-muted);
+            color: #94A3B8;
             font-size: 0.7rem;
             font-weight: 800;
             text-transform: uppercase;
@@ -124,25 +188,25 @@
             margin-bottom: 10px;
         }
 
-        .input-group {
+        body.recovery-mode .input-group {
             background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border);
+            border: 1px solid rgba(48, 54, 61, 0.8);
             border-radius: 12px;
             padding: 4px;
             display: flex;
             transition: all 0.3s;
         }
 
-        .input-group:focus-within {
-            border-color: var(--primary);
+        body.recovery-mode .input-group:focus-within {
+            border-color: #00FF9D;
             box-shadow: 0 0 15px rgba(0, 255, 157, 0.1);
         }
 
-        .readonly-val {
+        body.recovery-mode .readonly-val {
             flex-grow: 1;
             background: transparent;
             border: none;
-            color: var(--text-muted);
+            color: #94A3B8;
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.9rem;
             padding: 14px;
@@ -150,20 +214,20 @@
             word-break: break-all;
         }
 
-        .text-input {
+        body.recovery-mode .text-input {
             flex-grow: 1;
             background: transparent;
             border: none;
-            color: var(--text);
+            color: #FFFFFF;
             font-family: 'JetBrains Mono', monospace;
             font-size: 1rem;
             padding: 14px;
             outline: none;
         }
 
-        .btn {
+        body.recovery-mode .btn-recovery {
             width: 100%;
-            background: var(--primary);
+            background: #00FF9D;
             color: #000;
             border: none;
             border-radius: 12px;
@@ -178,25 +242,25 @@
             gap: 12px;
         }
 
-        .btn:hover {
+        body.recovery-mode .btn-recovery:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 30px var(--primary-glow);
+            box-shadow: 0 8px 30px rgba(0, 255, 157, 0.4);
         }
 
-        .btn-secondary {
+        body.recovery-mode .btn-secondary {
             background: rgba(255, 255, 255, 0.05);
-            color: var(--text);
-            border: 1px solid var(--border);
+            color: #FFFFFF;
+            border: 1px solid rgba(48, 54, 61, 0.8);
         }
 
-        .result-container {
+        body.recovery-mode .result-container {
             margin-top: 32px;
             padding-top: 32px;
             border-top: 1px solid rgba(255, 255, 255, 0.05);
             display: none;
         }
 
-        .result-container.show {
+        body.recovery-mode .result-container.show {
             display: block;
             animation: fadeIn 0.5s ease-out;
         }
@@ -206,7 +270,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .result-box {
+        body.recovery-mode .result-box {
             background: rgba(0, 255, 157, 0.05);
             border: 1px solid rgba(0, 255, 157, 0.2);
             border-radius: 12px;
@@ -215,45 +279,45 @@
             margin-bottom: 20px;
         }
 
-        .result-password {
+        body.recovery-mode .result-password {
             font-family: 'JetBrains Mono', monospace;
             font-size: 1.25rem;
             font-weight: 700;
-            color: var(--primary);
+            color: #00FF9D;
             word-break: break-all;
             margin-bottom: 12px;
         }
 
-        .success-toast {
+        body.recovery-mode .success-toast {
             position: fixed;
             bottom: 40px;
             left: 50%;
             transform: translateX(-50%) translateY(100px);
-            background: var(--primary);
+            background: #00FF9D;
             color: #000;
             padding: 14px 28px;
             border-radius: 50px;
             font-weight: 700;
             font-size: 0.9rem;
             transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-            box-shadow: 0 10px 40px var(--primary-glow);
+            box-shadow: 0 10px 40px rgba(0, 255, 157, 0.4);
             z-index: 1000;
         }
 
-        .success-toast.show {
+        body.recovery-mode .success-toast.show {
             transform: translateX(-50%) translateY(0);
         }
 
-        .privacy-note {
+        body.recovery-mode .privacy-note {
             text-align: center;
-            color: var(--text-muted);
+            color: #94A3B8;
             font-size: 11px;
             line-height: 1.6;
             margin-top: 32px;
             font-style: italic;
         }
 
-        footer {
+        body.recovery-mode footer.recovery-footer {
             text-align: center;
             padding: 40px;
             color: rgba(148, 163, 184, 0.3);
@@ -262,96 +326,311 @@
     </style>
 </head>
 
-<body>
-    <div class="bg-glow"></div>
-
-    <div class="container">
-        <header>
-            <div class="brand">InCase</div>
-            <p class="tagline">Emergency Reconstruction Protocol. All math happens locally in your browser.</p>
-        </header>
-
-        <section class="card">
-            <div class="helper-header">
-                <span class="badge">Master Key Reconstruction</span>
-                <h3>Vault Recovery</h3>
-            </div>
-
-            <div class="field">
-                <span class="label">Part 1 (From Watchdog Link)</span>
-                <div class="input-group">
-                    <input type="text" id="shareB" class="readonly-val" readonly placeholder="Missing Link Data">
+<body class="selection:bg-primary/30">
+    <div id="home-page" style="display: none;">
+        <!-- TopNavBar -->
+        <nav class="fixed top-0 w-full z-50 bg-[#0b1326]/60 backdrop-blur-md shadow-2xl shadow-[#060e20]/40">
+            <div class="flex justify-between items-center px-8 py-4 max-w-7xl mx-auto">
+                <div class="text-2xl font-black text-[#4edea3] tracking-tighter font-headline">InCase</div>
+                <div class="hidden md:flex gap-8 items-center font-headline font-bold tracking-tight">
+                    <a class="text-[#c6c6cd] hover:text-[#4edea3] transition-colors" href="#">Security</a>
+                    <a class="text-[#c6c6cd] hover:text-[#4edea3] transition-colors" href="#">Features</a>
+                    <a class="text-[#c6c6cd] hover:text-[#4edea3] transition-colors" href="#">Pricing</a>
                 </div>
-            </div>
-
-            <div class="field">
-                <span class="label">Part 2 (From Owner)</span>
-                <div class="input-group">
-                    <input type="text" id="shareA" class="text-input" placeholder="Paste owner's part here..." autofocus>
-                </div>
-                <!-- Selection for Guardian Index -->
-                <div style="display: flex; gap: 8px; margin-top: 12px;">
-                    <button id="btnG1" class="btn btn-secondary" style="padding: 10px; font-size: 0.75rem; flex: 1; border-color: var(--border);">I am Guardian A</button>
-                    <button id="btnG2" class="btn btn-secondary" style="padding: 10px; font-size: 0.75rem; flex: 1; border-color: var(--primary);">I am Guardian B</button>
-                </div>
-                <div id="hintText" style="color: var(--accent); font-size: 0.8rem; margin-top: 14px; display: none;"></div>
-            </div>
-
-            <button id="reconstructBtn" class="btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                    <path d="m9 12 2 2 4-4"></path>
-                </svg>
-                Reconstruct Password
-            </button>
-
-            <!-- Success Content -->
-            <div id="resultContainer" class="result-container">
-                <div class="result-box">
-                    <div class="label" style="margin-bottom: 12px; color: var(--primary);">Success! Master Password:</div>
-                    <div id="reconstructedPassword" class="result-password">LOADING...</div>
-                    <button id="copyBtn" class="btn btn-secondary" style="padding: 12px; font-size: 0.85rem;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                        Copy to Clipboard
+                <div class="flex items-center gap-4">
+                    <button class="bg-primary text-on-primary px-6 py-2 rounded-xl font-headline font-bold hover:scale-95 transition-transform duration-200 active:scale-95">
+                        Download
                     </button>
                 </div>
-
-                <div id="downloadSection">
-                    <span class="label">Final Step: Unlock Vault</span>
-                    <button id="downloadBtn" class="btn btn-secondary">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        Download Vault File
-                    </button>
-                    <p style="color: var(--text-muted); font-size: 0.7rem; text-align: center; margin-top: 14px; line-height: 1.5;">
-                        Save the PDF and unlock it using the Master Password shown above.
+            </div>
+        </nav>
+        <main class="pt-24 space-y-32">
+            <!-- Hero Section -->
+            <section class="relative px-8 max-w-7xl mx-auto bg-vault-gradient">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center min-h-[819px]">
+                    <div class="space-y-8">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high border border-outline-variant/20">
+                            <span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+                            <span class="text-xs font-label uppercase tracking-widest text-on-surface-variant font-semibold">Military Grade Security</span>
+                        </div>
+                        <h1 class="font-headline font-extrabold text-5xl md:text-7xl leading-[1.1] tracking-tighter">
+                            Your Ironclad <br />
+                            <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-on-primary-container">Digital Sanctuary</span>
+                        </h1>
+                        <p class="text-lg md:text-xl text-on-surface-variant max-w-lg leading-relaxed">
+                            The most secure way to organize, store, and keep private your life’s most important information. Protected by the Vaulted Sanctuary architecture.
+                        </p>
+                        <div class="flex flex-wrap gap-4 pt-4">
+                            <button class="px-8 py-4 bg-primary text-on-primary font-headline font-extrabold rounded-xl hover:scale-95 transition-transform duration-200 shadow-lg shadow-primary/20">
+                                Get Started
+                            </button>
+                            <button class="px-8 py-4 bg-secondary-container text-on-surface font-headline font-bold rounded-xl hover:scale-95 transition-transform duration-200 flex items-center gap-2">
+                                <span class="material-symbols-outlined">play_circle</span>
+                                Watch Video
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative group">
+                        <div class="absolute inset-0 bg-primary/20 blur-[100px] rounded-full group-hover:bg-primary/30 transition-colors"></div>
+                        <div class="relative rounded-2xl overflow-hidden shadow-2xl shadow-surface-container-lowest/80 border border-outline-variant/10">
+                            <img class="w-full object-cover" data-alt="Modern smartphone interface showing a secure digital vault application with biometric scanning visualization and dark elegant UI aesthetic" src="phone_intro.png" />
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- Key Value Props -->
+            <section class="px-8 max-w-7xl mx-auto">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div class="p-8 rounded-2xl bg-surface-container-low hover:bg-surface-container-high transition-colors group">
+                        <div class="w-12 h-12 rounded-xl bg-primary-container flex items-center justify-center mb-6">
+                            <span class="material-symbols-outlined text-primary">security</span>
+                        </div>
+                        <h3 class="font-headline font-bold text-xl mb-3">Military-Grade Encryption</h3>
+                        <p class="text-on-surface-variant text-sm leading-relaxed">AES-256-GCM zero-knowledge encryption ensures only you hold the keys to your sanctuary.</p>
+                    </div>
+                    <div class="p-8 rounded-2xl bg-surface-container-low hover:bg-surface-container-high transition-colors">
+                        <div class="w-12 h-12 rounded-xl bg-primary-container flex items-center justify-center mb-6">
+                            <span class="material-symbols-outlined text-primary">fingerprint</span>
+                        </div>
+                        <h3 class="font-headline font-bold text-xl mb-3">Biometric Access</h3>
+                        <p class="text-on-surface-variant text-sm leading-relaxed">Seamlessly access your vault with FaceID, TouchID, or advanced hardware security keys.</p>
+                    </div>
+                    <div class="p-8 rounded-2xl bg-surface-container-low hover:bg-surface-container-high transition-colors">
+                        <div class="w-12 h-12 rounded-xl bg-primary-container flex items-center justify-center mb-6">
+                            <span class="material-symbols-outlined text-primary">history_edu</span>
+                        </div>
+                        <h3 class="font-headline font-bold text-xl mb-3">Emergency Legacy Flow</h3>
+                        <p class="text-on-surface-variant text-sm leading-relaxed">Automated protocol to securely pass your digital legacy to loved ones in critical events.</p>
+                    </div>
+                    <div class="p-8 rounded-2xl bg-surface-container-low hover:bg-surface-container-high transition-colors">
+                        <div class="w-12 h-12 rounded-xl bg-primary-container flex items-center justify-center mb-6">
+                            <span class="material-symbols-outlined text-primary">document_scanner</span>
+                        </div>
+                        <h3 class="font-headline font-bold text-xl mb-3">Smart OCR Capture</h3>
+                        <p class="text-on-surface-variant text-sm leading-relaxed">Digitize physical documents instantly with AI-powered data extraction and indexing.</p>
+                    </div>
+                </div>
+            </section>
+            <!-- Detailed Feature Section: Smart Add & Emergency -->
+            <section class="px-8 max-w-7xl mx-auto space-y-40">
+                <!-- OCR Feature -->
+                <div class="flex flex-col lg:flex-row items-center gap-20">
+                    <div class="w-full lg:w-1/2 order-2 lg:order-1">
+                        <div class="relative p-2 bg-surface-container-highest/20 rounded-3xl max-w-sm mx-auto shadow-2xl">
+                            <img class="rounded-2xl shadow-2xl border border-outline-variant/10 w-full max-h-[600px] object-cover object-top" data-alt="Screenshot of InCase Smart Add OCR process showing a driver's license being scanned and data fields being extracted" src="ocr.png" />
+                            <div class="absolute -bottom-8 -right-8 p-6 glass-panel rounded-2xl border border-outline-variant/20 shadow-xl hidden md:block">
+                                <div class="flex items-center gap-4">
+                                    <span class="material-symbols-outlined text-primary text-3xl">check_circle</span>
+                                    <div>
+                                        <p class="font-headline font-bold text-on-surface">Data Indexed</p>
+                                        <p class="text-xs text-on-surface-variant">OCR Processing Complete</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="w-full lg:w-1/2 space-y-6 order-1 lg:order-2">
+                        <span class="text-primary font-headline font-extrabold tracking-widest text-sm">INTELLIGENT CAPTURE</span>
+                        <h2 class="text-4xl md:text-5xl font-headline font-extrabold tracking-tight">Smart Add: OCR Redefined</h2>
+                        <p class="text-on-surface-variant text-lg leading-relaxed">
+                            Say goodbye to manual entry. Our Smart Add OCR engine analyzes physical documents, identifies key fields like expiry dates and account numbers, and automatically categorizes them in your vault.
+                        </p>
+                        <ul class="space-y-4 pt-4">
+                            <li class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-primary">verified</span>
+                                <span>Visual Field Mapping</span>
+                            </li>
+                            <li class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-primary">verified</span>
+                                <span>Instant Category Mapping</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- Emergency Access -->
+                <div class="flex flex-col lg:flex-row items-center gap-20">
+                    <div class="w-full lg:w-1/2 space-y-6">
+                        <span class="text-tertiary font-headline font-extrabold tracking-widest text-sm">LEGACY PROTECTION</span>
+                        <h2 class="text-4xl md:text-5xl font-headline font-extrabold tracking-tight">The Emergency Access Protocol</h2>
+                        <p class="text-on-surface-variant text-lg leading-relaxed">
+                            Define a "Dead Man's Switch" or nominate trusted beneficiaries. If you're unable to access your account, InCase follows your predetermined protocol to ensure your legacy remains in the right hands.
+                        </p>
+                        <div class="p-6 rounded-2xl bg-surface-container-lowest border border-outline-variant/10">
+                            <div class="flex items-center gap-4 mb-4">
+                                <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-tertiary">timer</span>
+                                </div>
+                                <span class="font-headline font-bold">Custom Inactivity Threshold</span>
+                            </div>
+                            <p class="text-sm text-on-surface-variant">Set wait periods from 48 hours to 6 months before access is granted to your emergency contacts.</p>
+                        </div>
+                    </div>
+                    <div class="w-full lg:w-1/2">
+                        <div class="relative p-2 bg-surface-container-highest/20 rounded-3xl">
+                            <img class="rounded-2xl shadow-2xl border border-outline-variant/10 w-full" data-alt="InCase Emergency Activation interface showing secure recovery options and guardian access settings" src="emergency.png" />
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- Final CTA -->
+            <section class="px-8 pb-32 max-w-7xl mx-auto">
+                <div class="relative rounded-[3rem] overflow-hidden p-16 md:p-24 text-center space-y-8 bg-surface-container-lowest border border-outline-variant/10">
+                    <div class="absolute inset-0 opacity-10 pointer-events-none">
+                        <img class="w-full h-full object-cover" data-alt="Abstract server room background with glowing emerald status lights and complex wiring representing data security" src="servers.png" />
+                    </div>
+                    <div class="relative z-10 space-y-8">
+                        <h2 class="text-5xl md:text-6xl font-headline font-extrabold tracking-tighter leading-none">Secure Your <br /><span class="text-primary">Legacy Today</span></h2>
+                        <p class="text-on-surface-variant text-xl max-w-xl mx-auto leading-relaxed">
+                            Join users who trust InCase with their most sensitive digital assets.
+                        </p>
+                        <div class="flex flex-wrap justify-center gap-6 pt-4">
+                            <a class="flex items-center gap-4 px-8 py-3 rounded-2xl bg-on-background text-background font-headline font-bold hover:scale-95 transition-transform duration-200" href="#">
+                                <span class="material-symbols-outlined text-3xl">play_arrow</span>
+                                <div class="text-left">
+                                    <p class="text-[10px] uppercase font-label font-bold tracking-widest opacity-60">Get it on</p>
+                                    <p class="text-lg">Google Play</p>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <!-- Footer -->
+        <footer class="bg-[#060e20] w-full border-t border-[#45464d]/15">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-12 px-12 py-16 max-w-7xl mx-auto">
+                <div class="space-y-6">
+                    <div class="text-lg font-bold text-[#4edea3]">InCase</div>
+                    <p class="font-['Inter'] text-sm text-[#c6c6cd] leading-relaxed">
+                        Dedicated to the preservation of digital legacies. Built with the Vaulted Sanctuary philosophy in mind—unshakeable security, ultimate clarity.
                     </p>
                 </div>
+                <div class="grid grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <h4 class="text-on-surface font-headline font-bold text-sm uppercase tracking-widest">Platform</h4>
+                        <ul class="space-y-2 font-['Inter'] text-sm text-[#c6c6cd]">
+                            <li><a class="hover:text-[#4edea3] transition-colors" href="https://github.com/MDevM20/incase-watchdog">Open Source Backend Service</a></li>
+                        </ul>
+                    </div>
+                    <div class="space-y-4">
+                        <h4 class="text-on-surface font-headline font-bold text-sm uppercase tracking-widest">Legal</h4>
+                        <ul class="space-y-2 font-['Inter'] text-sm text-[#c6c6cd]">
+                            <li><a class="hover:text-[#4edea3] transition-colors" href="/PRIVACY_POLICY.md">Privacy Policy</a></li>
+                            <li><a class="hover:text-[#4edea3] transition-colors" href="/TERMS_OF_SERVICE.md">Terms of Service</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <h4 class="text-on-surface font-headline font-bold text-sm uppercase tracking-widest">Stay Secure</h4>
+                        <p class="font-['Inter'] text-sm text-[#c6c6cd] pt-8 md:pt-0">
+                            © 2026 InCase Digital Vault by Queentia. All rights reserved. Built for the Vaulted Sanctuary.
+                        </p>
+                    </div>
+                </div>
             </div>
-
-            <div id="errorMsg" style="color: var(--error); font-size: 0.8rem; text-align: center; margin-top: 20px; display: none;">
-                Reconstruction failed. Please ensure both parts are correct.
-            </div>
-
-            <div class="privacy-note">
-                Zero-Knowledge execution: All cryptographic operations are performed on your machine. We never see your keys.
-            </div>
-        </section>
+        </footer>
     </div>
 
-    <div id="toast" class="success-toast">Password copied to clipboard</div>
+    <div id="recovery-page" style="display: none;">
+        <div class="bg-glow"></div>
+        <div class="recovery-container">
+            <header class="recovery-header">
+                <div class="brand-recovery">InCase</div>
+                <p class="tagline-recovery">Emergency Reconstruction Protocol. All math happens locally in your browser.</p>
+            </header>
 
-    <footer>
-        © 2026 InCase Vault Protocol
-    </footer>
+            <section class="recovery-card">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <span class="badge">Master Key Reconstruction</span>
+                    <h3>Vault Recovery</h3>
+                </div>
 
-    <script>
+                <div class="field">
+                    <span class="label">Part 1 (From Watchdog Link)</span>
+                    <div class="input-group">
+                        <input type="text" id="shareB" class="readonly-val" readonly placeholder="Missing Link Data">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <span class="label">Part 2 (From Owner)</span>
+                    <div class="input-group">
+                        <input type="text" id="shareA" class="text-input" placeholder="Paste owner's part here..." autofocus>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 12px;">
+                        <button id="btnG1" class="btn-recovery btn-secondary" style="padding: 10px; font-size: 0.75rem; flex: 1; border-color: rgba(48, 54, 61, 0.8);">I am Guardian A</button>
+                        <button id="btnG2" class="btn-recovery btn-secondary" style="padding: 10px; font-size: 0.75rem; flex: 1; border-color: #00FF9D;">I am Guardian B</button>
+                    </div>
+                    <div id="hintText" style="color: #60A5FA; font-size: 0.8rem; margin-top: 14px; display: none;"></div>
+                </div>
+
+                <button id="reconstructBtn" class="btn-recovery">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        <path d="m9 12 2 2 4-4"></path>
+                    </svg>
+                    Reconstruct Password
+                </button>
+
+                <div id="resultContainer" class="result-container">
+                    <div class="result-box">
+                        <div class="label" style="margin-bottom: 12px; color: #00FF9D;">Success! Master Password:</div>
+                        <div id="reconstructedPassword" class="result-password">LOADING...</div>
+                        <button id="copyBtn" class="btn-recovery btn-secondary" style="padding: 12px; font-size: 0.85rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            Copy to Clipboard
+                        </button>
+                    </div>
+
+                    <div id="downloadSection">
+                        <span class="label">Final Step: Unlock Vault</span>
+                        <button id="downloadBtn" class="btn-recovery btn-secondary">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Download Vault File
+                        </button>
+                        <p style="color: #94A3B8; font-size: 0.7rem; text-align: center; margin-top: 14px; line-height: 1.5;">
+                            Save the PDF and unlock it using the Master Password shown above.
+                        </p>
+                    </div>
+                </div>
+
+                <div id="errorMsg" style="color: #FF4D4D; font-size: 0.8rem; text-align: center; margin-top: 20px; display: none;">
+                    Reconstruction failed. Please ensure both parts are correct.
+                </div>
+
+                <div class="privacy-note">
+                    Zero-Knowledge execution: All cryptographic operations are performed on your machine. We never see your keys.
+                </div>
+            </section>
+        </div>
+        <div id="toast" class="success-toast">Password copied to clipboard</div>
+        <footer class="recovery-footer">
+            © 2026 InCase Vault Protocol
+        </footer>
+    </div>
+
+    <script id="router">
+        const params = new URLSearchParams(window.location.search);
+        if (params.toString()) {
+            document.body.classList.add('recovery-mode');
+            document.getElementById('recovery-page').style.display = 'block';
+            document.title = "InCase | Vault Reconstructor";
+        } else {
+            document.documentElement.classList.add('dark');
+            document.body.classList.add('bg-background', 'text-on-surface', 'font-body');
+            document.getElementById('home-page').style.display = 'block';
+        }
+    </script>
+
+    <script id="recovery-logic">
         // --- GF(2^8) Implementation ---
         const exp = new Uint8Array(256);
         const log = new Uint8Array(256);
@@ -401,6 +680,8 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
+            if (!params.toString()) return;
+
             const watchdogShareBase64 = params.get('mkey') || '';
             const hint = params.get('hint');
             const fileUrl = params.get('url');
@@ -422,17 +703,16 @@
                 hintDisplay.textContent = `Owner's Hint: "${hint}"`;
             }
 
-            // Selection Logic for Guardian Number
             btnG1.addEventListener('click', () => {
                 selectedGuardianIndex = 1;
-                btnG1.style.borderColor = 'var(--primary)';
-                btnG2.style.borderColor = 'var(--border)';
+                btnG1.style.borderColor = '#00FF9D';
+                btnG2.style.borderColor = 'rgba(48, 54, 61, 0.8)';
             });
 
             btnG2.addEventListener('click', () => {
                 selectedGuardianIndex = 2;
-                btnG2.style.borderColor = 'var(--primary)';
-                btnG1.style.borderColor = 'var(--border)';
+                btnG2.style.borderColor = '#00FF9D';
+                btnG1.style.borderColor = 'rgba(48, 54, 61, 0.8)';
             });
 
             document.getElementById('reconstructBtn').addEventListener('click', () => {
@@ -445,7 +725,6 @@
 
                     if (!sA || !sB) throw new Error();
 
-                    // Decode shares (handle Base64Url)
                     const decode = (str) => {
                         let b64 = str.replace(/-/g, '+').replace(/_/g, '/');
                         while (b64.length % 4) b64 += '=';
@@ -459,31 +738,22 @@
                         throw new Error();
                     }
 
-                    // Reconstruct using selected index for the manual share
-                    // (Guardian A = 1, Guardian B = 2)
-                    // and index 3 for the watchdog (shareB)
                     const shares = { 3: shareBData };
                     shares[selectedGuardianIndex] = shareAData;
 
                     const secretBytes = reconstructSecret(shares);
 
-                    // Encode back to Base64Url (Matching Flutter setup)
                     const encodeUrl = (bytes) => {
                         let binary = '';
                         for (let i = 0; i < bytes.length; i++) {
                             binary += String.fromCharCode(bytes[i]);
                         }
-                        // Standard btoa gives us padding
                         let b64 = btoa(binary)
                             .replace(/\+/g, '-')
                             .replace(/\//g, '_');
-                        
-                        // Reliability check: 32 bytes MUST result in a 44-char string with one '='
-                        // Some environments might strip padding in btoa for URL-safety, so we enforce it.
                         if (bytes.length === 32 && b64.length === 43) {
                             b64 += '=';
                         }
-                        
                         return b64;
                     };
 
