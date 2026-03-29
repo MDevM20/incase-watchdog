@@ -688,7 +688,7 @@
                 </div>
             </section>
         </div>
-        <div id="toast" class="success-toast">Password copied to clipboard</div>
+        <div id="toast" class="success-toast">Password copied! Clearing in 60s for security.</div>
         <footer class="recovery-footer">
             © 2026 InCase Vault Protocol
         </footer>
@@ -843,11 +843,35 @@
                 }
             });
 
+            let clipboardTimer = null;
+
             document.getElementById('copyBtn').addEventListener('click', async () => {
-                await navigator.clipboard.writeText(passDisplay.textContent);
+                // First "clean" by writing empty string
+                await navigator.clipboard.writeText('');
+                
+                // Then write the actual secret
+                const secret = passDisplay.textContent;
+                await navigator.clipboard.writeText(secret);
+                
+                // Show toast
                 const toast = document.getElementById('toast');
                 toast.classList.add('show');
-                setTimeout(() => toast.classList.remove('show'), 3000);
+                setTimeout(() => toast.classList.remove('show'), 4000);
+
+                // Clear previous timer if exists
+                if (clipboardTimer) clearTimeout(clipboardTimer);
+
+                // Trigger security cleanup after 60 seconds
+                clipboardTimer = setTimeout(async () => {
+                    try {
+                        // Check if current clipboard content matches the secret before clearing
+                        // (Requires 'clipboard-read' permission, but we'll just try to write an empty string anyway)
+                        await navigator.clipboard.writeText('');
+                        console.log('Clipboard cleared for security.');
+                    } catch (err) {
+                        console.warn('Could not clear clipboard automatically:', err);
+                    }
+                }, 60000);
             });
 
             if (fileUrl) {
