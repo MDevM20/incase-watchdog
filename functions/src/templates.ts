@@ -166,7 +166,7 @@ export function getEmergencyAccessTemplate(data: {
                     <!-- Next Steps -->
                     <tr>
                         <td style="padding-bottom: 20px; color: ${textColor}; font-size: 20px; font-weight: 700;">
-                            Next Steps
+                            3-Step Recovery Process
                         </td>
                     </tr>
                     <tr>
@@ -174,29 +174,29 @@ export function getEmergencyAccessTemplate(data: {
                             <table border="0" cellpadding="0" cellspacing="0" width="100%">
                                 <!-- Step 1 -->
                                 <tr>
-                                    <td width="30" valign="top" style="padding-bottom: 16px;">
-                                        <div style="background-color: rgba(255, 255, 255, 0.1); color: ${mutedTextColor}; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700;">1</div>
+                                    <td width="30" valign="top" style="padding-bottom: 24px;">
+                                        <div style="background-color: ${primaryColor}; color: #000; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 800;">1</div>
                                     </td>
-                                    <td style="padding-bottom: 16px; padding-left: 12px; color: ${mutedTextColor}; font-size: 14px; line-height: 1.5;">
-                                        Open the downloaded PDF file using any standard PDF viewer or the InCase Secure Desktop app.
+                                    <td style="padding-bottom: 24px; padding-left: 12px; color: ${textColor}; font-size: 14px; line-height: 1.6;">
+                                        <strong style="color: ${primaryColor};">Locate your Guardian Token:</strong> Search your email inbox for <code style="background-color: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 4px;">[GUARDIAN_RECOVERY_TOKEN]</code> to find the key part specifically shared with you previously. Copy that part.
                                     </td>
                                 </tr>
                                 <!-- Step 2 -->
                                 <tr>
-                                    <td width="30" valign="top" style="padding-bottom: 16px;">
-                                        <div style="background-color: rgba(255, 255, 255, 0.1); color: ${mutedTextColor}; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700;">2</div>
+                                    <td width="30" valign="top" style="padding-bottom: 24px;">
+                                        <div style="background-color: ${primaryColor}; color: #000; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 800;">2</div>
                                     </td>
-                                    <td style="padding-bottom: 16px; padding-left: 12px; color: ${mutedTextColor}; font-size: 14px; line-height: 1.5;">
-                                        When prompted for a password, enter the 12-character Master Key (Part 1) immediately followed by your answer to the hint (Part 2).
+                                    <td style="padding-bottom: 24px; padding-left: 12px; color: ${textColor}; font-size: 14px; line-height: 1.6;">
+                                        <strong style="color: ${primaryColor};">Reconstruct the Master Password:</strong> Click the "Secure Decryption Helper" button in Option 1 above. The page will automatically load one part of the key. Paste the token you found in Step 1 into the "Part 2" field and click "Reconstruct".
                                     </td>
                                 </tr>
                                 <!-- Step 3 -->
                                 <tr>
-                                    <td width="30" valign="top" style="padding-bottom: 16px;">
-                                        <div style="background-color: rgba(255, 255, 255, 0.1); color: ${mutedTextColor}; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700;">3</div>
+                                    <td width="30" valign="top" style="padding-bottom: 24px;">
+                                        <div style="background-color: ${primaryColor}; color: #000; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 800;">3</div>
                                     </td>
-                                    <td style="padding-bottom: 16px; padding-left: 12px; color: ${mutedTextColor}; font-size: 14px; line-height: 1.5;">
-                                        Example: If Part 1 is ABCD-123 and your hint answer is Buddy1998, enter <strong style="color: ${textColor};">ABCD123Buddy1998</strong>.
+                                    <td style="padding-bottom: 24px; padding-left: 12px; color: ${textColor}; font-size: 14px; line-height: 1.6;">
+                                        <strong style="color: ${primaryColor};">Unlock the Vault:</strong> Copy the resulting Master Password. Click "Download Vault File" or "Open PDF". When prompted for a password, paste the Master Password into the PDF viewer to access the sanctuary.
                                     </td>
                                 </tr>
                             </table>
